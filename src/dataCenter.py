@@ -1,8 +1,10 @@
+import gc
 import sys
 import os
 
 from collections import defaultdict
 import numpy as np
+import pandas as pd
 
 class DataCenter(object):
 	"""docstring for DataCenter"""
@@ -52,6 +54,43 @@ class DataCenter(object):
 			setattr(self, dataSet+'_adj_lists', adj_lists)
 
 		elif dataSet == 'movielens':
+			ml_movies_file = self.config['file_path.ml_movies']
+			movies_df = pd.read_csv(ml_movies_file)
+
+			user_feat = []
+			movie_map = {} # map movieId to position in movies_feat
+
+			movies_feat = movies_df.iloc[:, 1:].to_numpy().tolist()
+
+			i = 0
+			for idx in movies_df.movieId:
+				movie_map[int(idx)] = i
+				i += 1
+
+			del movies_df
+			gc.collect()
+
+			ml_ratings_file = self.config['file_path.ml_ratings']
+			ratings_df = pd.read_csv(ml_ratings_file)
+
+			movie_adj_list = defaultdict(set)
+			user_adj_list = defaultdict(set)
+			edge_list = []
+
+			def build_edges(row):
+				user_id = int(row["userId"])
+				movie_id = int(row["movieId"])
+				user = user_id - 1
+				movie = movie_map[movie_id]
+				rating = row["rating"]
+				movie_adj_list[movie].add((user, rating))
+				user_adj_list[user].add((movie, rating))
+				edge_list.append((user, movie, rating))
+
+			ratings_df.apply(build_edges, axis=1)
+			del ratings_df
+			gc.collect()
+
 			print("Ovo radi!")
 
 		elif dataSet == 'pubmed':
