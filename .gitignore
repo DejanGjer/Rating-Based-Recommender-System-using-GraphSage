@@ -1,2 +1,3 @@
 dataset_preprocessing/movie_features.csv
+dataset_preprocessing/rating_features.csv
 datasets/ml-25m
