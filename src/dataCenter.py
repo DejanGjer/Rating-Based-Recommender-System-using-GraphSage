@@ -51,6 +51,9 @@ class DataCenter(object):
 			setattr(self, dataSet+'_labels', labels)
 			setattr(self, dataSet+'_adj_lists', adj_lists)
 
+		elif dataSet == 'movielens':
+			print("Ovo radi!")
+
 		elif dataSet == 'pubmed':
 			pubmed_content_file = self.config['file_path.pubmed_paper']
 			pubmed_cite_file = self.config['file_path.pubmed_cites']
