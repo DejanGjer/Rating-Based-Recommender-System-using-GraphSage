@@ -1,3 +1,17 @@
 dataset_preprocessing/movie_features.csv
 dataset_preprocessing/rating_features.csv
 datasets/ml-25m
+
+# ignore .torch files
+*.torch
+
+# ignore logs and models folders
+logs/
+models/
+
+# Byte-compiled / optimized / DLL files
+src/__pycache__/
+*.py[cod]
+*$py.class
+.DS_Store
+.vscode/
