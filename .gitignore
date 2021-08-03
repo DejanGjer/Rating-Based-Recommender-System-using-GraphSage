@@ -1,5 +1,6 @@
 dataset_preprocessing/movie_features.csv
 dataset_preprocessing/rating_features.csv
+dataset_preprocessing/prepared_data
 datasets/ml-25m
 
 # ignore .torch files
