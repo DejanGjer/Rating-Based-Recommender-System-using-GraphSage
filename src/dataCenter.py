@@ -2,6 +2,7 @@ import gc
 import sys
 import os
 import pickle
+import sys
 
 from collections import defaultdict
 import numpy as np
@@ -58,11 +59,26 @@ class DataCenter(object):
 			a_file = open("dataset_preprocessing/prepared_data/data.pkl", "rb")
 			data = pickle.load(a_file)
 			a_file.close()
-			movies_feat = data["movies_feat"]
+			movie_feats = data["movies_feat"]
+			user_feats = []
 			movie_map = data["movie_map"]
 			movie_adj_list = data["movie_adj_list"]
 			user_adj_list = data["user_adj_list"]
 			edge_list = data["edge_list"]
+
+			print(f"{len(movie_feats)} x {len(movie_feats[0])} - {sys.getsizeof(movie_feats[1000])}")
+			print(f"{len(movie_map)} - {sys.getsizeof(movie_map)}")
+			print(f"{len(movie_adj_list)} x {len(movie_adj_list[500])}- {sys.getsizeof(movie_adj_list[100])}")
+			print(f"{len(user_adj_list)} - {sys.getsizeof(user_adj_list)}")
+			print(f"{len(edge_list)} - {sys.getsizeof(edge_list)}")
+
+			setattr(self, dataSet + '_movie_feats', movie_feats)
+			setattr(self, dataSet + '_user_feats', user_feats)
+			setattr(self, dataSet + '_movie_map', movie_map)
+
+			setattr(self, dataSet + '_movie_adj_list', movie_adj_list)
+			setattr(self, dataSet + '_user_adj_list', user_adj_list)
+			setattr(self, dataSet + '_edge_list', edge_list)
 
 			print("Ovo radi!")
 

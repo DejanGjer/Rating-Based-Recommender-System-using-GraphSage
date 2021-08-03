@@ -250,6 +250,15 @@ class GraphSage(nn.Module):
 		for i in range(self.num_layers):
 			lower_samp_neighs, lower_layer_nodes_dict, lower_layer_nodes= self._get_unique_neighs_list(lower_layer_nodes)
 			nodes_batch_layers.insert(0, (lower_layer_nodes, lower_samp_neighs, lower_layer_nodes_dict))
+		#Testing
+		# print("First")
+		# print(f"Nodes - {len(nodes_batch_layers[2][0])}")
+		# print(nodes_batch_layers[2][0])
+		# print("Dict")
+		# print(nodes_batch_layers[2][2])
+		# print("Neighs")
+		# print(nodes_batch_layers[2][1])
+		# exit()
 
 		assert len(nodes_batch_layers) == self.num_layers + 1
 
