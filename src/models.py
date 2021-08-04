@@ -343,12 +343,13 @@ class GraphSage(nn.Module):
 class GraphSage2(nn.Module):
 	"""docstring for GraphSage"""
 
-	def __init__(self, num_layers, input_size, out_size, raw_movie_features, movie_adj_lists, user_adj_lists, device, agg_func='SUM'):
+	def __init__(self, num_layers, input_size, hidden_size, out_size, raw_movie_features, movie_adj_lists, user_adj_lists, num_ratings, device, agg_func='SUM'):
 		super(GraphSage2, self).__init__()
 
 		self.input_size = input_size
 		self.out_size = out_size
 		self.num_layers = num_layers
+		self.num_ratings = num_ratings
 		self.device = device
 		self.agg_func = agg_func
 
@@ -358,7 +359,9 @@ class GraphSage2(nn.Module):
 
 		for index in range(1, num_layers + 1):
 			layer_size = out_size if index != 1 else input_size
-			setattr(self, 'sage_layer' + str(index), SageLayer2(layer_size, out_size))
+			setattr(self, 'rating_layer' + str(index), RatingLayer(layer_size, hidden_size, num_ratings))
+			setattr(self, 'sage_layer' + str(index), SageLayer2(hidden_size, out_size))
+
 
 	def forward(self, movie_batch, user_batch):
 		"""
@@ -409,11 +412,17 @@ class GraphSage2(nn.Module):
 			print("Nodes")
 			print(pre_neighs[0])
 			print("Dict")
-			print(pre_neighs[2])
-			print("Neighborhood")
 			print(pre_neighs[1])
+			print("Neighborhood")
+			print(pre_neighs[2])
+			print("Rating neighborhood")
+			print(pre_neighs[3])
 			# self.dc.logger.info('aggregate_feats.')
-			aggregate_feats = self.aggregate(nb, pre_hidden_embs, pre_neighs)
+			rating_layer = getattr(self, 'rating_layer' + str(index))
+			hidden_embs = rating_layer(nb, pre_neighs, pre_hidden_embs)
+			print(f"{tip} hidden feats")
+			print(hidden_embs)
+			aggregate_feats = self.aggregate(nb, hidden_embs, pre_neighs)
 			print(f"{tip} agg feats")
 			print(aggregate_feats)
 			sage_layer = getattr(self, 'sage_layer' + str(index))
@@ -434,7 +443,7 @@ class GraphSage2(nn.Module):
 		return [movie_embs, user_embs]
 
 	def _nodes_map(self, nodes, neighs):
-		layer_nodes, samp_neighs, layer_nodes_dict = neighs
+		layer_nodes, layer_nodes_dict, samp_neighs, samp_neighs_ratings = neighs
 		assert len(samp_neighs) == len(nodes)
 		index = [layer_nodes_dict[x] for x in nodes]
 		return index
@@ -469,7 +478,7 @@ class GraphSage2(nn.Module):
 		return samp_neighs, samp_neighs_ratings, unique_nodes, _unique_nodes_list
 
 	def aggregate(self, nodes, pre_hidden_embs, pre_neighs, num_sample=10):
-		unique_nodes_list, samp_neighs, unique_nodes = pre_neighs
+		unique_nodes_list, unique_nodes, samp_neighs, samp_neighs_ratings = pre_neighs
 
 		assert len(nodes) == len(samp_neighs)
 		#indicator = [(nodes[i] in samp_neighs[i]) for i in range(len(samp_neighs))]
@@ -549,7 +558,7 @@ class RatingLayer(nn.Module):
 	Encodes a node's using 'convolutional' GraphSage approach
 	"""
 	def __init__(self, input_size, hidden_size, num_ratings):
-		super(SageLayer2, self).__init__()
+		super(RatingLayer, self).__init__()
 
 		self.input_size = input_size
 		self.hidden_size = hidden_size
@@ -567,12 +576,8 @@ class RatingLayer(nn.Module):
 		for param in self.parameters():
 			nn.init.xavier_uniform_(param)
 
-	def forward(self, nodes, samp_neighs_ratings, unique_nodes, unique_nodes_list, pre_hidden_embs):
-		"""
-		Generates embeddings for a batch of nodes.
-
-		nodes	 -- list of nodes
-		"""
+	def forward(self, nodes, nodes_before, pre_hidden_embs):
+		unique_nodes_list, unique_nodes, samp_neighs, samp_neighs_ratings = nodes_before
 
 		assert len(nodes) == len(samp_neighs_ratings)
 
@@ -586,7 +591,9 @@ class RatingLayer(nn.Module):
 			for neigh_node in samp_neigh:
 				index = unique_nodes[neigh_node[0]]
 				rating = neigh_node[1]
-				hidden_emb = self.weight[rating].mm(embed_matrix[index]).t()
+				hidden_emb = torch.matmul(self.weight[rating], embed_matrix[index].t())
 				result_embed_matrix[index] = hidden_emb
+
+		result_embed_matrix = torch.stack(result_embed_matrix)
 
 		return result_embed_matrix

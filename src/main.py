@@ -52,9 +52,11 @@ if __name__ == '__main__':
 	features = torch.FloatTensor(getattr(dataCenter, ds+'_movie_feats')).to(device)
 
 	if ds == "movielens":
-		graphSage = GraphSage2(config['setting.num_layers'], features.size(1), config['setting.hidden_emb_size'],
+		graphSage = GraphSage2(config['setting.num_layers'], features.size(1), config['setting.rating_emb_size'],
+							   config['setting.hidden_emb_size'],
 							   features, getattr(dataCenter, ds + '_movie_adj_list'),
-							   getattr(dataCenter, ds + '_user_adj_list'), device, agg_func=args.agg_func)
+							   getattr(dataCenter, ds + '_user_adj_list'), config['setting.num_ratings'], device,
+							   agg_func=args.agg_func)
 		movie_batch = [2,3]
 		user_batch = [0,6]
 		[movie_embs, user_embs] = graphSage(movie_batch, user_batch)
