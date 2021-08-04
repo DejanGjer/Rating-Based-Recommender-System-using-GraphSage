@@ -56,29 +56,55 @@ class DataCenter(object):
 			setattr(self, dataSet+'_adj_lists', adj_lists)
 
 		elif dataSet == 'movielens':
-			a_file = open("dataset_preprocessing/prepared_data/data.pkl", "rb")
-			data = pickle.load(a_file)
-			a_file.close()
-			movie_feats = data["movies_feat"]
-			user_feats = []
-			movie_map = data["movie_map"]
-			movie_adj_list = data["movie_adj_list"]
-			user_adj_list = data["user_adj_list"]
-			edge_list = data["edge_list"]
+			# a_file = open("dataset_preprocessing/prepared_data/data.pkl", "rb")
+			# data = pickle.load(a_file)
+			# a_file.close()
+			# movie_feats = data["movies_feat"]
+			# user_feats = []
+			# movie_map = data["movie_map"]
+			# movie_adj_list = data["movie_adj_list"]
+			# user_adj_list = data["user_adj_list"]
+			# edge_list = data["edge_list"]
 
-			print(f"{len(movie_feats)} x {len(movie_feats[0])} - {sys.getsizeof(movie_feats[1000])}")
-			print(f"{len(movie_map)} - {sys.getsizeof(movie_map)}")
-			print(f"{len(movie_adj_list)} x {len(movie_adj_list[500])}- {sys.getsizeof(movie_adj_list[100])}")
-			print(f"{len(user_adj_list)} - {sys.getsizeof(user_adj_list)}")
-			print(f"{len(edge_list)} - {sys.getsizeof(edge_list)}")
+			movie_feats = [[0,0,0,3],
+						   [0,0,0,5],
+						   [0,0,2,0],
+						   [0,7,0,0],
+						   [0,5,4,0],
+						   [2,0,0,6],
+						   [1,0,0,0]]
+
+			movie_adj_list = [{7},
+							  {0,7},
+							  {0},
+							  {3,6},
+							  {2},
+							  {3,6},
+							  {0,4,5,7}]
+
+			user_adj_list = [{1,2,6},
+							 {},
+							 {4},
+							 {3,5},
+							 {6},
+							 {6},
+							 {3,5,6},
+							 {0,1}]
+
+
+			# print(f"{len(movie_feats)} x {len(movie_feats[0])} - {sys.getsizeof(movie_feats[1000])}")
+			# print(f"{len(movie_map)} - {sys.getsizeof(movie_map)}")
+			# print(f"{len(movie_adj_list)} x {len(movie_adj_list[500])}- {sys.getsizeof(movie_adj_list[100])}")
+			# print(f"{len(user_adj_list)} - {sys.getsizeof(user_adj_list)}")
+			# print(f"{len(edge_list)} - {sys.getsizeof(edge_list)}")
 
 			setattr(self, dataSet + '_movie_feats', movie_feats)
-			setattr(self, dataSet + '_user_feats', user_feats)
-			setattr(self, dataSet + '_movie_map', movie_map)
+			#setattr(self, dataSet + '_user_feats', user_feats)
+			#setattr(self, dataSet + '_movie_map', movie_map)
 
 			setattr(self, dataSet + '_movie_adj_list', movie_adj_list)
 			setattr(self, dataSet + '_user_adj_list', user_adj_list)
-			setattr(self, dataSet + '_edge_list', edge_list)
+			#setattr(self, dataSet + '_edge_list', edge_list)
 
 			print("Ovo radi!")
 

@@ -49,7 +49,20 @@ if __name__ == '__main__':
 	ds = args.dataSet
 	dataCenter = DataCenter(config)
 	dataCenter.load_dataSet(ds)
-	features = torch.FloatTensor(getattr(dataCenter, ds+'_feats')).to(device)
+	features = torch.FloatTensor(getattr(dataCenter, ds+'_movie_feats')).to(device)
+
+	if ds == "movielens":
+		graphSage = GraphSage2(config['setting.num_layers'], features.size(1), config['setting.hidden_emb_size'],
+							   features, getattr(dataCenter, ds + '_movie_adj_list'),
+							   getattr(dataCenter, ds + '_user_adj_list'), device, agg_func=args.agg_func)
+		movie_batch = [2,3]
+		user_batch = [0,6]
+		[movie_embs, user_embs] = graphSage(movie_batch, user_batch)
+		print("Movie embeddings")
+		print(movie_embs)
+		print("User embeddings")
+		print(user_embs)
+		exit()
 
 	graphSage = GraphSage(config['setting.num_layers'], features.size(1), config['setting.hidden_emb_size'], features, getattr(dataCenter, ds+'_adj_lists'), device, gcn=args.gcn, agg_func=args.agg_func)
 	graphSage.to(device)
