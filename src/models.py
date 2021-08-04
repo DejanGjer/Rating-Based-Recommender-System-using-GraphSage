@@ -543,3 +543,50 @@ class SageLayer2(nn.Module):
 		combined = F.relu(aggregate_feats)
 		combined = F.relu(self.weight.mm(combined.t())).t()
 		return combined
+
+class RatingLayer(nn.Module):
+	"""
+	Encodes a node's using 'convolutional' GraphSage approach
+	"""
+	def __init__(self, input_size, hidden_size, num_ratings):
+		super(SageLayer2, self).__init__()
+
+		self.input_size = input_size
+		self.hidden_size = hidden_size
+		self.num_ratings = num_ratings
+
+		self.weight = dict()
+		rating = 0
+		for i in range(num_ratings):
+			rating += 0.5
+			self.weight[rating] = nn.Parameter(torch.FloatTensor(hidden_size, input_size))
+
+		self.init_params()
+
+	def init_params(self):
+		for param in self.parameters():
+			nn.init.xavier_uniform_(param)
+
+	def forward(self, nodes, samp_neighs_ratings, unique_nodes, unique_nodes_list, pre_hidden_embs):
+		"""
+		Generates embeddings for a batch of nodes.
+
+		nodes	 -- list of nodes
+		"""
+
+		assert len(nodes) == len(samp_neighs_ratings)
+
+		if len(pre_hidden_embs) == len(unique_nodes):
+			embed_matrix = pre_hidden_embs
+		else:
+			embed_matrix = pre_hidden_embs[torch.LongTensor(unique_nodes_list)]
+
+		result_embed_matrix = [None] * len(unique_nodes)
+		for samp_neigh in samp_neighs_ratings:
+			for neigh_node in samp_neigh:
+				index = unique_nodes[neigh_node[0]]
+				rating = neigh_node[1]
+				hidden_emb = self.weight[rating].mm(embed_matrix[index]).t()
+				result_embed_matrix[index] = hidden_emb
+
+		return result_embed_matrix
