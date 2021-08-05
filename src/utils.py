@@ -194,3 +194,70 @@ def apply_model(dataCenter, ds, graphSage, classification, unsupervised_loss, b_
 			model.zero_grad()
 
 	return graphSage, classification
+
+def apply_model2(dataCenter, ds, graphSage, projection, b_sz, device, learn_method):
+	train_edges = getattr(dataCenter, ds+'_edge_list')
+
+	train_edges = shuffle(train_edges)
+
+	models = [graphSage, projection]
+	params = []
+	for model in models:
+		for param in model.parameters():
+			if param.requires_grad:
+				params.append(param)
+
+	optimizer = torch.optim.SGD(params, lr=0.7)
+	optimizer.zero_grad()
+	for model in models:
+		model.zero_grad()
+
+	batches = math.ceil(len(train_edges) / b_sz)
+
+	visited_edges = set()
+	for index in range(batches):
+		print("NEW BATCH")
+		print("========================================================================================================")
+		edge_batch = train_edges[index*b_sz:(index+1)*b_sz]
+
+		# extend nodes batch for unspervised learning
+		# no conflicts with supervised learning
+
+		#zakomentarisana linija ispod
+
+		#nodes_batch = np.asarray(list(unsupervised_loss.extend_nodes(nodes_batch, num_neg=num_neg)))
+		visited_edges |= set(edge_batch)
+
+		# get ground-truth for the nodes batch
+		ratings_batch = torch.tensor([edge[2] for edge in edge_batch])
+
+		# feed nodes batch to the graphSAGE
+		# returning the nodes embeddings
+		#print("MOVIE GENERATION")
+		movie_embs = graphSage(edge_batch, "movie")
+		#print("-------------------------------------------------------")
+		#print("USER GENERATION")
+		user_embs = graphSage(edge_batch, "user")
+
+		if learn_method == 'sup':
+			# superivsed learning
+			result_batch = projection(user_embs, movie_embs)
+			print("Results")
+			print(result_batch)
+			print("Ratings")
+			print(ratings_batch)
+			loss_sup = torch.sum(torch.square(result_batch - ratings_batch))
+			loss_sup /= len(edge_batch)
+			loss = loss_sup
+
+		print('Step [{}/{}], Loss: {:.4f}, Dealed Nodes [{}/{}] '.format(index+1, batches, loss.item(), len(visited_edges), len(train_edges)))
+		loss.backward()
+		for model in models:
+			nn.utils.clip_grad_norm_(model.parameters(), 5)
+		optimizer.step()
+
+		optimizer.zero_grad()
+		for model in models:
+			model.zero_grad()
+
+	return graphSage, projection

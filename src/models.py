@@ -50,13 +50,13 @@ class Projection(nn.Module):
 	def forward(self, user_batch_embeds, movie_batch_embeds):
 		users_projection = self.layer_user(user_batch_embeds)
 		movies_projection = self.layer_movie(movie_batch_embeds)
-		print("Regression")
-		print("Movies projection")
-		print(type(movies_projection))
-		print(movies_projection)
-		print("Users projection")
-		print(type(users_projection))
-		print(users_projection)
+		# print("Projection")
+		# print("Movies projection")
+		# print(type(movies_projection))
+		# print(movies_projection)
+		# print("Users projection")
+		# print(type(users_projection))
+		# print(users_projection)
 
 		result = torch.sum((users_projection * movies_projection), 1)
 
@@ -426,62 +426,61 @@ class GraphSage2(nn.Module):
 			nodes_batch_layers = [(lower_layer_user_nodes,)]
 			layers = 2 * self.num_layers - 1
 
-		print(nodes_batch_layers)
 		# self.dc.logger.info('get_unique_neighs.')
 		for i in range(layers):
 			if (i + to_gen) % 2 == 0:
-				print("Adding users for movies")
-				print(lower_layer_movie_nodes)
+				# print("Adding users for movies")
+				# print(lower_layer_movie_nodes)
 				lower_samp_movie_neighs, lower_samp_movie_neighs_ratings, lower_layer_user_dict, lower_layer_user_nodes \
 					= self._get_unique_neighs_list(lower_layer_movie_nodes, "movie",
 												   opposite_edges=movie_edges if i == 0 else None)
 				nodes_batch_layers.insert(0, (lower_layer_user_nodes, lower_layer_user_dict, lower_samp_movie_neighs,
 											  lower_samp_movie_neighs_ratings))
 			else:
-				print("Adding movies for users")
-				print(lower_layer_user_nodes)
+				# print("Adding movies for users")
+				# print(lower_layer_user_nodes)
 				lower_samp_user_neighs, lower_samp_user_neighs_ratings, lower_layer_movie_dict, lower_layer_movie_nodes \
 					= self._get_unique_neighs_list(lower_layer_user_nodes, "user",
 												   opposite_edges=user_edges if i == 0 else None)
 				nodes_batch_layers.insert(0, (lower_layer_movie_nodes, lower_layer_movie_dict, lower_samp_user_neighs,
 											  lower_samp_user_neighs_ratings))
-		print(nodes_batch_layers[0])
-		print(nodes_batch_layers[1])
-		print(nodes_batch_layers[2])
-		print(nodes_batch_layers[3])
+		# print(nodes_batch_layers[0])
+		# print(nodes_batch_layers[1])
+		# print(nodes_batch_layers[2])
+		# print(nodes_batch_layers[3])
 
 		pre_hidden_embs = self.raw_movie_features
-		print(pre_hidden_embs)
+		#print(pre_hidden_embs)
 		movie_embs = []
 		user_embs = []
 		tip = ""
 		for index in range(1, layers + 1):
 			nb = nodes_batch_layers[index][0]
 			tip = "movie" if index % 2 == 0 else "user"
-			print(f"Current nodes ({tip}) \n {nb}")
+			#print(f"Current nodes ({tip}) \n {nb}")
 			pre_neighs = nodes_batch_layers[index - 1]
-			print(f"Layer before: ")
-			print("Nodes")
-			print(pre_neighs[0])
-			print("Dict")
-			print(pre_neighs[1])
-			print("Neighborhood")
-			print(pre_neighs[2])
-			print("Rating neighborhood")
-			print(pre_neighs[3])
+			#print(f"Layer before: ")
+			#print("Nodes")
+			#print(pre_neighs[0])
+			# print("Dict")
+			# print(pre_neighs[1])
+			# print("Neighborhood")
+			# print(pre_neighs[2])
+			# print("Rating neighborhood")
+			# print(pre_neighs[3])
 			# self.dc.logger.info('aggregate_feats.')
 			rating_layer = getattr(self, 'rating_layer' + str(index))
 			hidden_embs = rating_layer(nb, pre_neighs, pre_hidden_embs)
-			print(f"{tip} hidden feats")
-			print(hidden_embs)
+			# print(f"{tip} hidden feats")
+			# print(hidden_embs)
 			aggregate_feats = self.aggregate(nb, hidden_embs, pre_neighs)
-			print(f"{tip} agg feats")
-			print(aggregate_feats)
+			# print(f"{tip} agg feats")
+			# print(aggregate_feats)
 			sage_layer = getattr(self, 'sage_layer' + str(index))
 			# self.dc.logger.info('sage_layer.')
 			cur_hidden_embs = sage_layer(aggregate_feats=aggregate_feats)
-			print(f"{tip} gen embeds")
-			print(cur_hidden_embs)
+			# print(f"{tip} gen embeds")
+			# print(cur_hidden_embs)
 			# if index == self.num_layers:
 			# 	if index % 2 == 0:
 			# 		movie_embs = cur_hidden_embs
@@ -490,7 +489,7 @@ class GraphSage2(nn.Module):
 			# 		user_embs = cur_hidden_embs
 			# 		movie_embs = pre_hidden_embs[self._nodes_map(movie_batch, pre_neighs)]
 			pre_hidden_embs = cur_hidden_embs
-			print("-------------------------------------")
+			#print("-------------------------------------")
 
 		return pre_hidden_embs
 

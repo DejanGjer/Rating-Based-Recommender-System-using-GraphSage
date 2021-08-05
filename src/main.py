@@ -57,39 +57,39 @@ if __name__ == '__main__':
 							   features, getattr(dataCenter, ds + '_movie_adj_list'),
 							   getattr(dataCenter, ds + '_user_adj_list'), config['setting.num_ratings'], device,
 							   agg_func=args.agg_func)
-		edge_batch = [(0,2,3.5),
-					  (6,3,2.5)]
-
-		print("GENERATING USERS")
-		print("===============================================")
-		user_embs = graphSage(edge_batch, "user")
-		print("GENERATING MOVIES")
-		print("===============================================")
-		movie_embs = graphSage(edge_batch, "movie")
-
-		print("Movie embeddings")
-		print(movie_embs)
-		print("User embeddings")
-		print(user_embs)
-
-		print("===============================================")
+		# edge_batch = [(0,2,3.5),
+		# 			  (6,3,2.5)]
+		#
+		# print("GENERATING USERS")
+		# print("===============================================")
+		# user_embs = graphSage(edge_batch, "user")
+		# print("GENERATING MOVIES")
+		# print("===============================================")
+		# movie_embs = graphSage(edge_batch, "movie")
+		#
+		# print("Movie embeddings")
+		# print(movie_embs)
+		# print("User embeddings")
+		# print(user_embs)
+		#
+		# print("===============================================")
 		projection = Projection(config['setting.hidden_emb_size'], config['setting.projection_size'])
-		result = projection(user_embs, movie_embs)
+		# result = projection(user_embs, movie_embs)
+		#
+		# print("Result")
+		# print(type(result))
+		# print(result)
+		#
+		# exit()
+	else:
+		graphSage = GraphSage(config['setting.num_layers'], features.size(1), config['setting.hidden_emb_size'], features, getattr(dataCenter, ds+'_adj_lists'), device, gcn=args.gcn, agg_func=args.agg_func)
+		graphSage.to(device)
 
-		print("Result")
-		print(type(result))
-		print(result)
+		num_labels = len(set(getattr(dataCenter, ds+'_labels')))
+		classification = Classification(config['setting.hidden_emb_size'], num_labels)
+		classification.to(device)
 
-		exit()
-
-	graphSage = GraphSage(config['setting.num_layers'], features.size(1), config['setting.hidden_emb_size'], features, getattr(dataCenter, ds+'_adj_lists'), device, gcn=args.gcn, agg_func=args.agg_func)
-	graphSage.to(device)
-
-	num_labels = len(set(getattr(dataCenter, ds+'_labels')))
-	classification = Classification(config['setting.hidden_emb_size'], num_labels)
-	classification.to(device)
-
-	unsupervised_loss = UnsupervisedLoss(getattr(dataCenter, ds+'_adj_lists'), getattr(dataCenter, ds+'_train'), device)
+		unsupervised_loss = UnsupervisedLoss(getattr(dataCenter, ds+'_adj_lists'), getattr(dataCenter, ds+'_train'), device)
 
 	if args.learn_method == 'sup':
 		print('GraphSage with Supervised Learning')
@@ -100,8 +100,12 @@ if __name__ == '__main__':
 
 	for epoch in range(args.epochs):
 		print('----------------------EPOCH %d-----------------------' % epoch)
-		graphSage, classification = apply_model(dataCenter, ds, graphSage, classification, unsupervised_loss, args.b_sz, args.unsup_loss, device, args.learn_method)
-		if (epoch+1) % 2 == 0 and args.learn_method == 'unsup':
-			classification, args.max_vali_f1 = train_classification(dataCenter, graphSage, classification, ds, device, args.max_vali_f1, args.name)
-		if args.learn_method != 'unsup':
-			args.max_vali_f1 = evaluate(dataCenter, ds, graphSage, classification, device, args.max_vali_f1, args.name, epoch)
+		if ds == "movielens":
+			graphSage, projection = apply_model2(dataCenter, ds, graphSage, projection, 3, device, args.learn_method)
+		else:
+			graphSage, classification = apply_model(dataCenter, ds, graphSage, classification, unsupervised_loss, args.b_sz, args.unsup_loss, device, args.learn_method)
+
+		# if (epoch+1) % 2 == 0 and args.learn_method == 'unsup':
+		# 	classification, args.max_vali_f1 = train_classification(dataCenter, graphSage, classification, ds, device, args.max_vali_f1, args.name)
+		# if args.learn_method != 'unsup':
+		# 	args.max_vali_f1 = evaluate(dataCenter, ds, graphSage, classification, device, args.max_vali_f1, args.name, epoch)
