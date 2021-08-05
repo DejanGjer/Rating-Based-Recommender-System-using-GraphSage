@@ -207,7 +207,8 @@ def apply_model2(dataCenter, ds, graphSage, projection, b_sz, device, learn_meth
 			if param.requires_grad:
 				params.append(param)
 
-	optimizer = torch.optim.SGD(params, lr=0.7)
+	#optimizer = torch.optim.SGD(params, lr=0.7)
+	optimizer = torch.optim.Adam(params, lr=0.01)
 	optimizer.zero_grad()
 	for model in models:
 		model.zero_grad()
