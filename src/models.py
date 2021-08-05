@@ -357,38 +357,56 @@ class GraphSage2(nn.Module):
 		self.movie_adj_lists = movie_adj_lists
 		self.user_adj_lists = user_adj_lists
 
-		for index in range(1, num_layers + 1):
+		for index in range(1, 2 * num_layers + 1):
 			layer_size = out_size if index != 1 else input_size
 			setattr(self, 'rating_layer' + str(index), RatingLayer(layer_size, hidden_size, num_ratings))
 			setattr(self, 'sage_layer' + str(index), SageLayer2(hidden_size, out_size))
 
 
-	def forward(self, movie_batch, user_batch):
+	def forward(self, edge_batch, to_gen):
 		"""
 		Generates embeddings for a batch of nodes.
 		nodes_batch	-- batch of nodes to learn the embeddings
 		"""
 		#lower_layer_nodes = list(nodes_batch)
 
-		lower_layer_movie_nodes = list(movie_batch)
-		lower_layer_user_nodes = list(user_batch)
+		lower_layer_movie_nodes = list()
+		lower_layer_user_nodes = list()
+		movie_edges = list()
+		user_edges = list()
+		nodes_batch_layers = None
+		layers = 0
 
-		nodes_batch_layers = [(lower_layer_movie_nodes,) if self.num_layers % 2 == 0 else (lower_layer_user_nodes,)]
+		if to_gen == "movie":
+			to_gen = 0
+			lower_layer_movie_nodes = [edge[1] for edge in edge_batch]
+			movie_edges = [(edge[0], edge[2]) for edge in edge_batch]
+			nodes_batch_layers = [(lower_layer_movie_nodes,)]
+			layers = 2 * self.num_layers
+		elif to_gen == "user":
+			to_gen = 1
+			lower_layer_user_nodes = [edge[0] for edge in edge_batch]
+			user_edges = [(edge[1], edge[2]) for edge in edge_batch]
+			nodes_batch_layers = [(lower_layer_user_nodes,)]
+			layers = 2 * self.num_layers - 1
+
 		print(nodes_batch_layers)
 		# self.dc.logger.info('get_unique_neighs.')
-		for i in range(self.num_layers):
-			if (i + self.num_layers) % 2 == 0:
+		for i in range(layers):
+			if (i + to_gen) % 2 == 0:
 				print("Adding users for movies")
 				print(lower_layer_movie_nodes)
-				lower_samp_movie_neighs, lower_samp_movie_neighs_ratings, lower_layer_user_dict, lower_layer_user_nodes\
-					= self._get_unique_neighs_list(lower_layer_movie_nodes, "movie")
+				lower_samp_movie_neighs, lower_samp_movie_neighs_ratings, lower_layer_user_dict, lower_layer_user_nodes \
+					= self._get_unique_neighs_list(lower_layer_movie_nodes, "movie",
+												   opposite_edges=movie_edges if i == 0 else None)
 				nodes_batch_layers.insert(0, (lower_layer_user_nodes, lower_layer_user_dict, lower_samp_movie_neighs,
 											  lower_samp_movie_neighs_ratings))
 			else:
 				print("Adding movies for users")
 				print(lower_layer_user_nodes)
-				lower_samp_user_neighs, lower_samp_user_neighs_ratings, lower_layer_movie_dict, lower_layer_movie_nodes\
-					= self._get_unique_neighs_list(lower_layer_user_nodes, "user")
+				lower_samp_user_neighs, lower_samp_user_neighs_ratings, lower_layer_movie_dict, lower_layer_movie_nodes \
+					= self._get_unique_neighs_list(lower_layer_user_nodes, "user",
+												   opposite_edges=user_edges if i == 0 else None)
 				nodes_batch_layers.insert(0, (lower_layer_movie_nodes, lower_layer_movie_dict, lower_samp_user_neighs,
 											  lower_samp_user_neighs_ratings))
 		print(nodes_batch_layers[0])
@@ -396,14 +414,12 @@ class GraphSage2(nn.Module):
 		print(nodes_batch_layers[2])
 		print(nodes_batch_layers[3])
 
-		assert len(nodes_batch_layers) == self.num_layers + 1
-
 		pre_hidden_embs = self.raw_movie_features
 		print(pre_hidden_embs)
 		movie_embs = []
 		user_embs = []
 		tip = ""
-		for index in range(1, self.num_layers + 1):
+		for index in range(1, layers + 1):
 			nb = nodes_batch_layers[index][0]
 			tip = "movie" if index % 2 == 0 else "user"
 			print(f"Current nodes ({tip}) \n {nb}")
@@ -430,17 +446,17 @@ class GraphSage2(nn.Module):
 			cur_hidden_embs = sage_layer(aggregate_feats=aggregate_feats)
 			print(f"{tip} gen embeds")
 			print(cur_hidden_embs)
-			if index == self.num_layers:
-				if index % 2 == 0:
-					movie_embs = cur_hidden_embs
-					user_embs = pre_hidden_embs[self._nodes_map(user_batch, pre_neighs)]
-				else:
-					user_embs = cur_hidden_embs
-					movie_embs = pre_hidden_embs[self._nodes_map(movie_batch, pre_neighs)]
+			# if index == self.num_layers:
+			# 	if index % 2 == 0:
+			# 		movie_embs = cur_hidden_embs
+			# 		user_embs = pre_hidden_embs[self._nodes_map(user_batch, pre_neighs)]
+			# 	else:
+			# 		user_embs = cur_hidden_embs
+			# 		movie_embs = pre_hidden_embs[self._nodes_map(movie_batch, pre_neighs)]
 			pre_hidden_embs = cur_hidden_embs
 			print("-------------------------------------")
 
-		return [movie_embs, user_embs]
+		return pre_hidden_embs
 
 	def _nodes_map(self, nodes, neighs):
 		layer_nodes, layer_nodes_dict, samp_neighs, samp_neighs_ratings = neighs
@@ -448,7 +464,7 @@ class GraphSage2(nn.Module):
 		index = [layer_nodes_dict[x] for x in nodes]
 		return index
 
-	def _get_unique_neighs_list(self, nodes, node_type, num_sample=10):
+	def _get_unique_neighs_list(self, nodes, node_type, opposite_edges=None, num_sample=10):
 		_set = set
 		to_neighs = []
 		if node_type == "movie":
@@ -462,6 +478,11 @@ class GraphSage2(nn.Module):
 						   in to_neighs]
 		else:
 			samp_neighs_ratings = to_neighs
+
+		#Sample and remove for label leakage issue
+		if opposite_edges != None:
+			samp_neighs_ratings = [samp_neigh_rating - set([opposite_edges[i]]) for i, samp_neigh_rating in
+									   enumerate(samp_neighs_ratings)]
 
 		samp_neighs = []
 		for samp_neigh_rating in samp_neighs_ratings:
@@ -549,8 +570,8 @@ class SageLayer2(nn.Module):
 
 		nodes	 -- list of nodes
 		"""
-		combined = F.relu(aggregate_feats)
-		combined = F.relu(self.weight.mm(combined.t())).t()
+		combined = F.leaky_relu(aggregate_feats, negative_slope=0.1)
+		combined = F.leaky_relu(self.weight.mm(combined.t()), negative_slope=0.1).t()
 		return combined
 
 class RatingLayer(nn.Module):

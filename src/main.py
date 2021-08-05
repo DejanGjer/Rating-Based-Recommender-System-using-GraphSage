@@ -57,9 +57,16 @@ if __name__ == '__main__':
 							   features, getattr(dataCenter, ds + '_movie_adj_list'),
 							   getattr(dataCenter, ds + '_user_adj_list'), config['setting.num_ratings'], device,
 							   agg_func=args.agg_func)
-		movie_batch = [2,3]
-		user_batch = [0,6]
-		[movie_embs, user_embs] = graphSage(movie_batch, user_batch)
+		edge_batch = [(0,2,3.5),
+					  (6,3,2.5)]
+
+		print("GENERATING USERS")
+		print("===============================================")
+		user_embs = graphSage(edge_batch, "user")
+		print("GENERATING MOVIES")
+		print("===============================================")
+		movie_embs = graphSage(edge_batch, "movie")
+
 		print("Movie embeddings")
 		print(movie_embs)
 		print("User embeddings")
