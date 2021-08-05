@@ -564,11 +564,11 @@ class RatingLayer(nn.Module):
 		self.hidden_size = hidden_size
 		self.num_ratings = num_ratings
 
-		self.weight = dict()
+		self.weight = nn.ParameterList()
 		rating = 0
 		for i in range(num_ratings):
 			rating += 0.5
-			self.weight[rating] = nn.Parameter(torch.FloatTensor(hidden_size, input_size))
+			self.weight.append(nn.Parameter(torch.FloatTensor(hidden_size, input_size)))
 
 		self.init_params()
 
@@ -591,7 +591,8 @@ class RatingLayer(nn.Module):
 			for neigh_node in samp_neigh:
 				index = unique_nodes[neigh_node[0]]
 				rating = neigh_node[1]
-				hidden_emb = torch.matmul(self.weight[rating], embed_matrix[index].t())
+				param_index = int(rating / 0.5) - 1
+				hidden_emb = torch.matmul(self.weight[param_index], embed_matrix[index].t())
 				result_embed_matrix[index] = hidden_emb
 
 		result_embed_matrix = torch.stack(result_embed_matrix)
