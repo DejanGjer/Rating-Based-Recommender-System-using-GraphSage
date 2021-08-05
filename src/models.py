@@ -27,6 +27,42 @@ class Classification(nn.Module):
 		logists = torch.log_softmax(self.layer(embeds), 1)
 		return logists
 
+class Projection(nn.Module):
+
+	def __init__(self, emb_size, projection_size):
+		super(Projection, self).__init__()
+
+		#self.weight = nn.Parameter(torch.FloatTensor(emb_size, num_classes))
+		self.layer_user = nn.Sequential(
+			nn.Linear(emb_size, projection_size)
+		)
+		self.layer_movie = nn.Sequential(
+			nn.Linear(emb_size, projection_size)
+		)
+		self.init_params()
+
+	def init_params(self):
+		for param in self.parameters():
+			#just for params that are matrices
+			if len(param.size()) == 2:
+				nn.init.xavier_uniform_(param)
+
+	def forward(self, user_batch_embeds, movie_batch_embeds):
+		users_projection = self.layer_user(user_batch_embeds)
+		movies_projection = self.layer_movie(movie_batch_embeds)
+		print("Regression")
+		print("Movies projection")
+		print(type(movies_projection))
+		print(movies_projection)
+		print("Users projection")
+		print(type(users_projection))
+		print(users_projection)
+
+		result = torch.sum((users_projection * movies_projection), 1)
+
+		return result
+
+
 # class Classification(nn.Module):
 
 # 	def __init__(self, emb_size, num_classes):

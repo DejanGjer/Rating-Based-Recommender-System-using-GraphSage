@@ -71,6 +71,15 @@ if __name__ == '__main__':
 		print(movie_embs)
 		print("User embeddings")
 		print(user_embs)
+
+		print("===============================================")
+		projection = Projection(config['setting.hidden_emb_size'], config['setting.projection_size'])
+		result = projection(user_embs, movie_embs)
+
+		print("Result")
+		print(type(result))
+		print(result)
+
 		exit()
 
 	graphSage = GraphSage(config['setting.num_layers'], features.size(1), config['setting.hidden_emb_size'], features, getattr(dataCenter, ds+'_adj_lists'), device, gcn=args.gcn, agg_func=args.agg_func)
