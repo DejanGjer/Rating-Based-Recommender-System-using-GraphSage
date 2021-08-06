@@ -1,3 +1,4 @@
+import math
 import sys, os
 import torch
 import random
@@ -397,7 +398,7 @@ class GraphSage2(nn.Module):
 
 		for index in range(1, 2 * num_layers + 1):
 			layer_size = out_size if index != 1 else input_size
-			setattr(self, 'rating_layer' + str(index), RatingLayer(layer_size, hidden_size, num_ratings))
+			setattr(self, 'rating_layer' + str(index), RatingLayer(layer_size, hidden_size, num_ratings, movie_adj_lists, user_adj_lists))
 			setattr(self, 'sage_layer' + str(index), SageLayer2(hidden_size, out_size))
 
 
@@ -450,6 +451,8 @@ class GraphSage2(nn.Module):
 		# print(nodes_batch_layers[1])
 		# print(nodes_batch_layers[2])
 		# print(nodes_batch_layers[3])
+		# if to_gen == "movie":
+		# 	print(nodes_batch_layers[4])
 
 		#print(f"Expanding nodes {time.time() - start_time}")
 
@@ -460,12 +463,12 @@ class GraphSage2(nn.Module):
 		tip = ""
 		for index in range(1, layers + 1):
 			nb = nodes_batch_layers[index][0]
-			#tip = "movie" if index % 2 == 0 else "user"
-			#print(f"Current nodes ({tip}) \n {nb}")
+			node_type = "movie" if index % 2 == 0 else "user"
+			#print(f"Current nodes ({node_type}) \n {nb}")
 			pre_neighs = nodes_batch_layers[index - 1]
-			#print(f"Layer before: ")
-			#print("Nodes")
-			#print(pre_neighs[0])
+			# print(f"Layer before: ")
+			# print("Nodes")
+			# print(pre_neighs[0])
 			# print("Dict")
 			# print(pre_neighs[1])
 			# print("Neighborhood")
@@ -474,7 +477,7 @@ class GraphSage2(nn.Module):
 			# print(pre_neighs[3])
 			# self.dc.logger.info('aggregate_feats.')
 			rating_layer = getattr(self, 'rating_layer' + str(index))
-			hidden_embs = rating_layer(nb, pre_neighs, pre_hidden_embs)
+			hidden_embs = rating_layer(nb, pre_neighs, pre_hidden_embs, node_type)
 			# print(f"{tip} hidden feats")
 			# print(hidden_embs)
 			aggregate_feats = self.aggregate(nb, hidden_embs, pre_neighs)
@@ -618,12 +621,14 @@ class RatingLayer(nn.Module):
 	"""
 	Encodes a node's using 'convolutional' GraphSage approach
 	"""
-	def __init__(self, input_size, hidden_size, num_ratings):
+	def __init__(self, input_size, hidden_size, num_ratings, movie_adj_lists, user_adj_lists):
 		super(RatingLayer, self).__init__()
 
 		self.input_size = input_size
 		self.hidden_size = hidden_size
 		self.num_ratings = num_ratings
+		self.movie_adj_lists = movie_adj_lists
+		self.user_adj_lists = user_adj_lists
 
 		self.weight = nn.ParameterList()
 		rating = 0
@@ -637,7 +642,19 @@ class RatingLayer(nn.Module):
 		for param in self.parameters():
 			nn.init.xavier_uniform_(param)
 
-	def forward(self, nodes, nodes_before, pre_hidden_embs):
+	def num_of_rating_neigh(self, node, rating, node_type):
+		result = 0
+		if node_type == "movie":
+			for neigh in self.movie_adj_lists[node]:
+				if neigh[1] == rating:
+					result += 1
+		elif node_type == "user":
+			for neigh in self.user_adj_lists[node]:
+				if neigh[1] == rating:
+					result += 1
+		return result
+
+	def forward(self, nodes, nodes_before, pre_hidden_embs, node_type):
 		unique_nodes_list, unique_nodes, samp_neighs, samp_neighs_ratings = nodes_before
 
 		assert len(nodes) == len(samp_neighs_ratings)
@@ -648,12 +665,16 @@ class RatingLayer(nn.Module):
 			embed_matrix = pre_hidden_embs[torch.LongTensor(unique_nodes_list)]
 
 		result_embed_matrix = [None] * len(unique_nodes)
-		for samp_neigh in samp_neighs_ratings:
+		for i,samp_neigh in enumerate(samp_neighs_ratings):
 			for neigh_node in samp_neigh:
 				index = unique_nodes[neigh_node[0]]
 				rating = neigh_node[1]
 				param_index = int(rating / 0.5) - 1
-				hidden_emb = torch.matmul(self.weight[param_index], embed_matrix[index].t())
+				c_ij = math.sqrt(
+					self.num_of_rating_neigh(nodes[i], rating, node_type) * self.num_of_rating_neigh(neigh_node[0],
+																									 rating,
+																									 "movie" if node_type == "user" else "user"))
+				hidden_emb = torch.mul(torch.matmul(self.weight[param_index], embed_matrix[index].t()), 1/c_ij)
 				result_embed_matrix[index] = hidden_emb
 
 		result_embed_matrix = torch.stack(result_embed_matrix)

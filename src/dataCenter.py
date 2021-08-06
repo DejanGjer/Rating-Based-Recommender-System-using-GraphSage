@@ -60,7 +60,7 @@ class DataCenter(object):
 			data = pickle.load(a_file)
 			a_file.close()
 			movie_feats = data["movies_feat"]
-			movie_map = data["movie_map"]
+			#movie_map = data["movie_map"]
 			movie_adj_list_train = data["movie_adj_list_train"]
 			# movie_adj_list_valid = data["movie_adj_list_valid"]
 			# movie_adj_list_test = data["movie_adj_list_test"]
@@ -71,7 +71,7 @@ class DataCenter(object):
 			# edge_list_valid = data["edge_list_valid"]
 			# edge_list_test = data["edge_list_test"]
 
-			del data
+			#del data
 			gc.collect()
 
 			# movie_feats = [[1,0,0.2,0],
