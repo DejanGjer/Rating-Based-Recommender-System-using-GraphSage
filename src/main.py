@@ -14,7 +14,7 @@ parser = argparse.ArgumentParser(description='pytorch version of GraphSAGE')
 parser.add_argument('--dataSet', type=str, default='cora')
 parser.add_argument('--agg_func', type=str, default='MEAN')
 parser.add_argument('--epochs', type=int, default=50)
-parser.add_argument('--b_sz', type=int, default=20)
+parser.add_argument('--b_sz', type=int, default=100)
 parser.add_argument('--seed', type=int, default=824)
 parser.add_argument('--cuda', action='store_true',
 					help='use CUDA')
@@ -60,6 +60,7 @@ if __name__ == '__main__':
 							   features, getattr(dataCenter, ds + '_movie_adj_list_train'),
 							   getattr(dataCenter, ds + '_user_adj_list_train'), config['setting.num_ratings'], device,
 							   agg_func=args.agg_func)
+		graphSage.to(device)
 		# edge_batch = [(0,2,3.5),
 		# 			  (6,3,2.5)]
 		#
@@ -77,6 +78,7 @@ if __name__ == '__main__':
 		#
 		# print("===============================================")
 		projection = Projection(config['setting.hidden_emb_size'], config['setting.projection_size'])
+		projection.to(device)
 		# result = projection(user_embs, movie_embs)
 		#
 		# print("Result")

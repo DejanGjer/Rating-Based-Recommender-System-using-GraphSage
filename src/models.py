@@ -4,6 +4,7 @@ import random
 
 import torch.nn as nn
 import torch.nn.functional as F
+import time
 
 class Classification(nn.Module):
 
@@ -280,6 +281,7 @@ class GraphSage(nn.Module):
 		Generates embeddings for a batch of nodes.
 		nodes_batch	-- batch of nodes to learn the embeddings
 		"""
+
 		lower_layer_nodes = list(nodes_batch)
 		nodes_batch_layers = [(lower_layer_nodes,)]
 		# self.dc.logger.info('get_unique_neighs.')
@@ -404,7 +406,7 @@ class GraphSage2(nn.Module):
 		Generates embeddings for a batch of nodes.
 		nodes_batch	-- batch of nodes to learn the embeddings
 		"""
-		#lower_layer_nodes = list(nodes_batch)
+		#start_time = time.time()
 
 		lower_layer_movie_nodes = list()
 		lower_layer_user_nodes = list()
@@ -449,6 +451,8 @@ class GraphSage2(nn.Module):
 		# print(nodes_batch_layers[2])
 		# print(nodes_batch_layers[3])
 
+		#print(f"Expanding nodes {time.time() - start_time}")
+
 		pre_hidden_embs = self.raw_movie_features
 		#print(pre_hidden_embs)
 		movie_embs = []
@@ -456,7 +460,7 @@ class GraphSage2(nn.Module):
 		tip = ""
 		for index in range(1, layers + 1):
 			nb = nodes_batch_layers[index][0]
-			tip = "movie" if index % 2 == 0 else "user"
+			#tip = "movie" if index % 2 == 0 else "user"
 			#print(f"Current nodes ({tip}) \n {nb}")
 			pre_neighs = nodes_batch_layers[index - 1]
 			#print(f"Layer before: ")
@@ -490,6 +494,7 @@ class GraphSage2(nn.Module):
 			# 		movie_embs = pre_hidden_embs[self._nodes_map(movie_batch, pre_neighs)]
 			pre_hidden_embs = cur_hidden_embs
 			#print("-------------------------------------")
+			#print(f"Layer {index}: {time.time() - start_time}")
 
 		return pre_hidden_embs
 

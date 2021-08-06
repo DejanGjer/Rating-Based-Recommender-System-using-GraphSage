@@ -10,6 +10,8 @@ from sklearn.metrics import f1_score
 import torch.nn as nn
 import numpy as np
 
+import time
+
 def evaluate(dataCenter, ds, graphSage, classification, device, max_vali_f1, name, cur_epoch):
 	test_nodes = getattr(dataCenter, ds+'_test')
 	val_nodes = getattr(dataCenter, ds+'_val')
@@ -217,8 +219,8 @@ def apply_model2(dataCenter, ds, graphSage, projection, b_sz, device, learn_meth
 
 	visited_edges = set()
 	for index in range(batches):
-		print("NEW BATCH")
-		print("========================================================================================================")
+		# print("NEW BATCH")
+		# print("========================================================================================================")
 		edge_batch = train_edges[index*b_sz:(index+1)*b_sz]
 
 		# extend nodes batch for unspervised learning
@@ -230,7 +232,7 @@ def apply_model2(dataCenter, ds, graphSage, projection, b_sz, device, learn_meth
 		visited_edges |= set(edge_batch)
 
 		# get ground-truth for the nodes batch
-		ratings_batch = torch.tensor([edge[2] for edge in edge_batch])
+		ratings_batch = torch.tensor([edge[2] for edge in edge_batch]).to(device)
 
 		# feed nodes batch to the graphSAGE
 		# returning the nodes embeddings
@@ -240,18 +242,23 @@ def apply_model2(dataCenter, ds, graphSage, projection, b_sz, device, learn_meth
 		#print("USER GENERATION")
 		user_embs = graphSage(edge_batch, "user")
 
+		#start_time = time.time()
+
 		if learn_method == 'sup':
 			# superivsed learning
 			result_batch = projection(user_embs, movie_embs)
-			print("Results")
-			print(result_batch)
-			print("Ratings")
-			print(ratings_batch)
+			# print("Results")
+			# print(result_batch)
+			# print("Ratings")
+			# print(ratings_batch)
 			loss_sup = torch.sum(torch.square(result_batch - ratings_batch))
 			loss_sup /= len(edge_batch)
 			loss = loss_sup
 
 		print('Step [{}/{}], Loss: {:.4f}, Dealed Nodes [{}/{}] '.format(index+1, batches, loss.item(), len(visited_edges), len(train_edges)))
+		time1 = time.time()
+		#print(f"Calculating loss: {time1 - start_time}")
+
 		loss.backward()
 		for model in models:
 			nn.utils.clip_grad_norm_(model.parameters(), 5)
@@ -260,5 +267,8 @@ def apply_model2(dataCenter, ds, graphSage, projection, b_sz, device, learn_meth
 		optimizer.zero_grad()
 		for model in models:
 			model.zero_grad()
+
+		time2 = time.time() - time1
+		#print(f"Backprop: {time2}")
 
 	return graphSage, projection

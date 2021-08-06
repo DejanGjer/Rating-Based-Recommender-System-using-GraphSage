@@ -60,16 +60,19 @@ class DataCenter(object):
 			data = pickle.load(a_file)
 			a_file.close()
 			movie_feats = data["movies_feat"]
-			#movie_map = data["movie_map"]
+			movie_map = data["movie_map"]
 			movie_adj_list_train = data["movie_adj_list_train"]
-			movie_adj_list_valid = data["movie_adj_list_valid"]
-			movie_adj_list_test = data["movie_adj_list_test"]
+			# movie_adj_list_valid = data["movie_adj_list_valid"]
+			# movie_adj_list_test = data["movie_adj_list_test"]
 			user_adj_list_train = data["user_adj_list_train"]
-			user_adj_list_valid = data["user_adj_list_valid"]
-			user_adj_list_test = data["user_adj_list_test"]
+			# user_adj_list_valid = data["user_adj_list_valid"]
+			# user_adj_list_test = data["user_adj_list_test"]
 			edge_list_train = data["edge_list_train"]
-			edge_list_valid = data["edge_list_valid"]
-			edge_list_test = data["edge_list_test"]
+			# edge_list_valid = data["edge_list_valid"]
+			# edge_list_test = data["edge_list_test"]
+
+			del data
+			gc.collect()
 
 			# movie_feats = [[1,0,0.2,0],
 			# 			   [0.4,1,0,0.1],
@@ -78,14 +81,14 @@ class DataCenter(object):
 			# 			   [0.6,0,1,0],
 			# 			   [0,0,0,1]]
 			#
-			# movie_adj_list = [{(0,4.5), (1,4.5), (3,4), (5,3.5), (6,4.5), (7,3.5)},
+			# movie_adj_list_train = [{(0,4.5), (1,4.5), (3,4), (5,3.5), (6,4.5), (7,3.5)},
 			# 				  {(0,3.5), (1,3), (2,5), (4,4.5), (5,4), (6,4.5), (7,2.5)},
 			# 				  {(0,5), (2,4), (3,4.5), (4,4.5), (6,5), (7,4)},
 			# 				  {(1,2), (2,4.5), (4,4), (6,4.5)},
 			# 				  {(0,4), (1,4.5), (2,3.5), (4,3.5), (5,4), (6,3.5), (7,4)},
 			# 				  {(2,4),(5,2)}]
 			#
-			# user_adj_list = [{(0,4.5), (1,3.5), (2,5), (4,4)},
+			# user_adj_list_train = [{(0,4.5), (1,3.5), (2,5), (4,4)},
 			# 				 {(0,4.5), (1,3), (3,2), (4,4.5)},
 			# 				 {(1,5), (2,4), (3,4.5), (4,3.5), (5,4)},
 			# 				 {(0,4), (2,4.5)},
@@ -94,7 +97,7 @@ class DataCenter(object):
 			# 				 {(0,4.5), (1,4.5), (2,5), (3,4.5), (4,3.5)},
 			# 				 {(0,3.5), (1,2.5), (2,4), (4,4)}]
 			#
-			# edge_list = [(0,0,4.5),
+			# edge_list_train = [(0,0,4.5),
 			# 			 (0,1,3.5),
 			# 			 (0,2,5),
 			# 			 (0,4,4),
@@ -140,16 +143,16 @@ class DataCenter(object):
 			#setattr(self, dataSet + '_movie_map', movie_map)
 
 			setattr(self, dataSet + '_movie_adj_list_train', movie_adj_list_train)
-			setattr(self, dataSet + '_movie_adj_list_valid', movie_adj_list_valid)
-			setattr(self, dataSet + '_movie_adj_list_test', movie_adj_list_test)
+			# setattr(self, dataSet + '_movie_adj_list_valid', movie_adj_list_valid)
+			# setattr(self, dataSet + '_movie_adj_list_test', movie_adj_list_test)
 
 			setattr(self, dataSet + '_user_adj_list_train', user_adj_list_train)
-			setattr(self, dataSet + '_user_adj_list_valid', user_adj_list_valid)
-			setattr(self, dataSet + '_user_adj_list_test', user_adj_list_test)
+			# setattr(self, dataSet + '_user_adj_list_valid', user_adj_list_valid)
+			# setattr(self, dataSet + '_user_adj_list_test', user_adj_list_test)
 
 			setattr(self, dataSet + '_edge_list_train', edge_list_train)
-			setattr(self, dataSet + '_edge_list_valid', edge_list_valid)
-			setattr(self, dataSet + '_edge_list_test', edge_list_test)
+			# setattr(self, dataSet + '_edge_list_valid', edge_list_valid)
+			# setattr(self, dataSet + '_edge_list_test', edge_list_test)
 
 			print("Ovo radi!")
 
