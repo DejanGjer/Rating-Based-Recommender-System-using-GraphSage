@@ -56,7 +56,7 @@ class DataCenter(object):
 			setattr(self, dataSet+'_adj_lists', adj_lists)
 
 		elif dataSet == 'movielens':
-			a_file = open("dataset_preprocessing/prepared_data/data1.pkl", "rb")
+			a_file = open("dataset_preprocessing/prepared_data/data-small.pkl", "rb")
 			data = pickle.load(a_file)
 			a_file.close()
 			movie_feats = data["movies_feat"]

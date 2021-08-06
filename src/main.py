@@ -14,7 +14,7 @@ parser = argparse.ArgumentParser(description='pytorch version of GraphSAGE')
 parser.add_argument('--dataSet', type=str, default='cora')
 parser.add_argument('--agg_func', type=str, default='MEAN')
 parser.add_argument('--epochs', type=int, default=50)
-parser.add_argument('--b_sz', type=int, default=100)
+parser.add_argument('--b_sz', type=int, default=2000)
 parser.add_argument('--seed', type=int, default=824)
 parser.add_argument('--cuda', action='store_true',
 					help='use CUDA')
