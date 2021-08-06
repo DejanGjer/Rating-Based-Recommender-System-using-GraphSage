@@ -51,11 +51,14 @@ if __name__ == '__main__':
 	dataCenter.load_dataSet(ds)
 	features = torch.FloatTensor(getattr(dataCenter, ds+'_movie_feats')).to(device)
 
+	graphsage = None
+	projection = None
+	classification = None
 	if ds == "movielens":
 		graphSage = GraphSage2(config['setting.num_layers'], features.size(1), config['setting.rating_emb_size'],
 							   config['setting.hidden_emb_size'],
-							   features, getattr(dataCenter, ds + '_movie_adj_list'),
-							   getattr(dataCenter, ds + '_user_adj_list'), config['setting.num_ratings'], device,
+							   features, getattr(dataCenter, ds + '_movie_adj_list_train'),
+							   getattr(dataCenter, ds + '_user_adj_list_train'), config['setting.num_ratings'], device,
 							   agg_func=args.agg_func)
 		# edge_batch = [(0,2,3.5),
 		# 			  (6,3,2.5)]
@@ -101,7 +104,7 @@ if __name__ == '__main__':
 	for epoch in range(args.epochs):
 		print('----------------------EPOCH %d-----------------------' % epoch)
 		if ds == "movielens":
-			graphSage, projection = apply_model2(dataCenter, ds, graphSage, projection, 3, device, args.learn_method)
+			graphSage, projection = apply_model2(dataCenter, ds, graphSage, projection, args.b_sz, device, args.learn_method)
 		else:
 			graphSage, classification = apply_model(dataCenter, ds, graphSage, classification, unsupervised_loss, args.b_sz, args.unsup_loss, device, args.learn_method)
 

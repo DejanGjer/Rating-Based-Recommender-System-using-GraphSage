@@ -196,7 +196,7 @@ def apply_model(dataCenter, ds, graphSage, classification, unsupervised_loss, b_
 	return graphSage, classification
 
 def apply_model2(dataCenter, ds, graphSage, projection, b_sz, device, learn_method):
-	train_edges = getattr(dataCenter, ds+'_edge_list')
+	train_edges = getattr(dataCenter, ds+'_edge_list_train')
 
 	train_edges = shuffle(train_edges)
 
