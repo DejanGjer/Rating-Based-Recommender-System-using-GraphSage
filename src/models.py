@@ -382,7 +382,7 @@ class GraphSage(nn.Module):
 class GraphSage2(nn.Module):
 	"""docstring for GraphSage"""
 
-	def __init__(self, num_layers, input_size, hidden_size, out_size, raw_movie_features, movie_adj_lists, user_adj_lists, num_ratings, device, agg_func='SUM'):
+	def __init__(self, num_layers, input_size, hidden_size, out_size, raw_movie_features, movie_adj_lists, user_adj_lists, rating_distrib_movie, rating_distrib_user, num_ratings, device, agg_func='SUM'):
 		super(GraphSage2, self).__init__()
 
 		self.input_size = input_size
@@ -395,10 +395,12 @@ class GraphSage2(nn.Module):
 		self.raw_movie_features = raw_movie_features
 		self.movie_adj_lists = movie_adj_lists
 		self.user_adj_lists = user_adj_lists
+		self.rating_distrib_movie = rating_distrib_movie
+		self.rating_distrib_user = rating_distrib_user
 
 		for index in range(1, 2 * num_layers + 1):
 			layer_size = out_size if index != 1 else input_size
-			setattr(self, 'rating_layer' + str(index), RatingLayer(layer_size, hidden_size, num_ratings, movie_adj_lists, user_adj_lists))
+			setattr(self, 'rating_layer' + str(index), RatingLayer(layer_size, hidden_size, num_ratings, rating_distrib_movie, rating_distrib_user))
 			setattr(self, 'sage_layer' + str(index), SageLayer2(hidden_size, out_size))
 
 
@@ -621,14 +623,14 @@ class RatingLayer(nn.Module):
 	"""
 	Encodes a node's using 'convolutional' GraphSage approach
 	"""
-	def __init__(self, input_size, hidden_size, num_ratings, movie_adj_lists, user_adj_lists):
+	def __init__(self, input_size, hidden_size, num_ratings, rating_distrib_movie, rating_distrib_user):
 		super(RatingLayer, self).__init__()
 
 		self.input_size = input_size
 		self.hidden_size = hidden_size
 		self.num_ratings = num_ratings
-		self.movie_adj_lists = movie_adj_lists
-		self.user_adj_lists = user_adj_lists
+		self.rating_distrib_movie = rating_distrib_movie
+		self.rating_distrib_user = rating_distrib_user
 
 		self.weight = nn.ParameterList()
 		rating = 0
@@ -643,16 +645,11 @@ class RatingLayer(nn.Module):
 			nn.init.xavier_uniform_(param)
 
 	def num_of_rating_neigh(self, node, rating, node_type):
-		result = 0
 		if node_type == "movie":
-			for neigh in self.movie_adj_lists[node]:
-				if neigh[1] == rating:
-					result += 1
+			return self.rating_distrib_movie[node][rating]
 		elif node_type == "user":
-			for neigh in self.user_adj_lists[node]:
-				if neigh[1] == rating:
-					result += 1
-		return result
+			return self.rating_distrib_user[node][rating]
+		return 0
 
 	def forward(self, nodes, nodes_before, pre_hidden_embs, node_type):
 		unique_nodes_list, unique_nodes, samp_neighs, samp_neighs_ratings = nodes_before
@@ -671,8 +668,8 @@ class RatingLayer(nn.Module):
 				rating = neigh_node[1]
 				param_index = int(rating / 0.5) - 1
 				c_ij = math.sqrt(
-					self.num_of_rating_neigh(nodes[i], rating, node_type) * self.num_of_rating_neigh(neigh_node[0],
-																									 rating,
+					self.num_of_rating_neigh(nodes[i], param_index, node_type) * self.num_of_rating_neigh(neigh_node[0],
+																									 param_index,
 																									 "movie" if node_type == "user" else "user"))
 				hidden_emb = torch.mul(torch.matmul(self.weight[param_index], embed_matrix[index].t()), 1/c_ij)
 				result_embed_matrix[index] = hidden_emb

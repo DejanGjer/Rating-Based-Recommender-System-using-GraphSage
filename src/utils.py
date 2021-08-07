@@ -210,7 +210,7 @@ def apply_model2(dataCenter, ds, graphSage, projection, b_sz, device, learn_meth
 				params.append(param)
 
 	#optimizer = torch.optim.SGD(params, lr=0.7)
-	optimizer = torch.optim.Adam(params, lr=0.002)
+	optimizer = torch.optim.Adam(params, lr=0.01)
 	optimizer.zero_grad()
 	for model in models:
 		model.zero_grad()
@@ -310,7 +310,7 @@ def evaluate2(dataCenter, ds, graphSage, projection, device, name, cur_epoch):
 	torch.save({
 		'graphsage_state_dict': models[0].state_dict(),
 		'projection_state_dict': models[1].state_dict(),
-	}, f"models/model_graphsage_train_{name}_ep{cur_epoch}.tar")
+	}, f"models/model_graphsage_train_lr001_{name}_ep{cur_epoch}.tar")
 
 	for param in params:
 		param.requires_grad = True

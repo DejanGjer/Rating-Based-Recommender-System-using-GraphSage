@@ -61,8 +61,10 @@ if __name__ == '__main__':
 	if ds == "movielens":
 		graphSage = GraphSage2(config['setting.num_layers'], features.size(1), config['setting.rating_emb_size'],
 							   config['setting.hidden_emb_size'],
-							   features, getattr(dataCenter, ds + '_movie_adj_list_train'),
-							   getattr(dataCenter, ds + '_user_adj_list_train'), config['setting.num_ratings'], device,
+							   features, getattr(dataCenter, ds + '_movie_adj_list'),
+							   getattr(dataCenter, ds + '_user_adj_list'),getattr(dataCenter, ds + '_rating_distrib_movie'),
+							   getattr(dataCenter, ds + '_rating_distrib_user'),
+							   config['setting.num_ratings'], device,
 							   agg_func=args.agg_func)
 		graphSage.to(device)
 
