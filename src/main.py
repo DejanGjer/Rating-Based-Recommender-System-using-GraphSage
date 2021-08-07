@@ -4,6 +4,7 @@ import torch
 import argparse
 import pyhocon
 import random
+import pickle
 
 from src.dataCenter import *
 from src.utils import *
@@ -14,7 +15,7 @@ parser = argparse.ArgumentParser(description='pytorch version of GraphSAGE')
 parser.add_argument('--dataSet', type=str, default='cora')
 parser.add_argument('--agg_func', type=str, default='MEAN')
 parser.add_argument('--epochs', type=int, default=50)
-parser.add_argument('--b_sz', type=int, default=2000)
+parser.add_argument('--b_sz', type=int, default=3)
 parser.add_argument('--seed', type=int, default=824)
 parser.add_argument('--cuda', action='store_true',
 					help='use CUDA')
@@ -54,6 +55,9 @@ if __name__ == '__main__':
 	graphsage = None
 	projection = None
 	classification = None
+	train_losses = []
+	val_losses = []
+	val_rmse_losses = []
 	if ds == "movielens":
 		graphSage = GraphSage2(config['setting.num_layers'], features.size(1), config['setting.rating_emb_size'],
 							   config['setting.hidden_emb_size'],
@@ -61,6 +65,7 @@ if __name__ == '__main__':
 							   getattr(dataCenter, ds + '_user_adj_list_train'), config['setting.num_ratings'], device,
 							   agg_func=args.agg_func)
 		graphSage.to(device)
+
 		# edge_batch = [(0,2,3.5),
 		# 			  (6,3,2.5)]
 		#
@@ -79,6 +84,11 @@ if __name__ == '__main__':
 		# print("===============================================")
 		projection = Projection(config['setting.hidden_emb_size'], config['setting.projection_size'])
 		projection.to(device)
+
+		checkpoint = torch.load("models/model_graphsage_debug_ep19.tar")
+		graphSage.load_state_dict(checkpoint["graphsage_state_dict"])
+		projection.load_state_dict((checkpoint["projection_state_dict"]))
+
 		# result = projection(user_embs, movie_embs)
 		#
 		# print("Result")
@@ -106,7 +116,11 @@ if __name__ == '__main__':
 	for epoch in range(args.epochs):
 		print('----------------------EPOCH %d-----------------------' % epoch)
 		if ds == "movielens":
-			graphSage, projection = apply_model2(dataCenter, ds, graphSage, projection, args.b_sz, device, args.learn_method)
+			graphSage, projection, losses = apply_model2(dataCenter, ds, graphSage, projection, args.b_sz, device, args.learn_method)
+			train_losses.extend(losses)
+			val_loss, val_rmse = evaluate2(dataCenter, ds, graphSage, projection, device, args.name, epoch)
+			val_losses.append(val_loss)
+			val_rmse_losses.append(val_rmse)
 		else:
 			graphSage, classification = apply_model(dataCenter, ds, graphSage, classification, unsupervised_loss, args.b_sz, args.unsup_loss, device, args.learn_method)
 
@@ -114,3 +128,11 @@ if __name__ == '__main__':
 		# 	classification, args.max_vali_f1 = train_classification(dataCenter, graphSage, classification, ds, device, args.max_vali_f1, args.name)
 		# if args.learn_method != 'unsup':
 		# 	args.max_vali_f1 = evaluate(dataCenter, ds, graphSage, classification, device, args.max_vali_f1, args.name, epoch)
+
+	data = dict()
+	data["train_losses"] = train_losses
+	data["val_losses"] = val_losses
+	data["val_rmse_losses"] = val_rmse_losses
+	file_data = open("models/result_losses.pkl", "wb")
+	pickle.dump(data, file_data)
+	file_data.close()

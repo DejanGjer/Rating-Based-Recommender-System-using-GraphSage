@@ -218,6 +218,7 @@ def apply_model2(dataCenter, ds, graphSage, projection, b_sz, device, learn_meth
 	batches = math.ceil(len(train_edges) / b_sz)
 
 	visited_edges = set()
+	train_losses = []
 	for index in range(batches):
 		# print("NEW BATCH")
 		# print("========================================================================================================")
@@ -254,6 +255,7 @@ def apply_model2(dataCenter, ds, graphSage, projection, b_sz, device, learn_meth
 			loss_sup = torch.sum(torch.square(result_batch - ratings_batch))
 			loss_sup /= len(edge_batch)
 			loss = loss_sup
+			train_losses.append(loss.item())
 
 		print('Step [{}/{}], Loss: {:.4f}, Dealed Nodes [{}/{}] '.format(index+1, batches, loss.item(), len(visited_edges), len(train_edges)))
 		time1 = time.time()
@@ -271,4 +273,47 @@ def apply_model2(dataCenter, ds, graphSage, projection, b_sz, device, learn_meth
 		time2 = time.time() - time1
 		#print(f"Backprop: {time2}")
 
-	return graphSage, projection
+	return graphSage, projection, train_losses
+
+def evaluate2(dataCenter, ds, graphSage, projection, device, name, cur_epoch):
+	# movie_adj_list_valid = getattr(dataCenter, ds + '_movie_adj_list_valid')
+	# movie_adj_list_test = getattr(dataCenter, ds + '_movie_adj_list_test')
+	# user_adj_list_valid = getattr(dataCenter, ds + '_user_adj_list_valid')
+	# user_adj_list_test = getattr(dataCenter, ds + '_user_adj_list_test')
+	edge_list_valid = getattr(dataCenter, ds + "_edge_list_valid")
+	#edge_list_test = getattr(dataCenter, ds + "_edge_list_test")
+
+	models = [graphSage, projection]
+
+	params = []
+	for model in models:
+		for param in model.parameters():
+			if param.requires_grad:
+				param.requires_grad = False
+				params.append(param)
+
+	ratings = torch.tensor([edge[2] for edge in edge_list_valid]).to(device)
+
+	movie_embs = graphSage(edge_list_valid, "movie")
+	user_embs = graphSage(edge_list_valid, "user")
+	results = projection(user_embs, movie_embs)
+
+	val_loss = torch.sum(torch.square(results - ratings))
+	val_loss /= len(edge_list_valid)
+
+	val_rmse = torch.sqrt(val_loss)
+
+	print(f"Validation after epoch {cur_epoch} - loss: {val_loss.item()} , rmse - {val_rmse.item()}")
+
+	#torch.save(models, f"models/model_graphsage_{name}_ep{cur_epoch}.torch")
+
+	torch.save({
+		'graphsage_state_dict': models[0].state_dict(),
+		'projection_state_dict': models[1].state_dict(),
+	}, f"models/model_graphsage_train_{name}_ep{cur_epoch}.tar")
+
+	for param in params:
+		param.requires_grad = True
+
+	return val_loss.item(), val_rmse.item()
+
