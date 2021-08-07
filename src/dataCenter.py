@@ -56,85 +56,85 @@ class DataCenter(object):
 			setattr(self, dataSet+'_adj_lists', adj_lists)
 
 		elif dataSet == 'movielens':
-			# a_file = open("dataset_preprocessing/prepared_data/data-small.pkl", "rb")
-			# data = pickle.load(a_file)
-			# a_file.close()
-			# movie_feats = data["movies_feat"]
+			a_file = open("dataset_preprocessing/prepared_data/data-small.pkl", "rb")
+			data = pickle.load(a_file)
+			a_file.close()
+			movie_feats = data["movies_feat"]
 			#movie_map = data["movie_map"]
-			#movie_adj_list_train = data["movie_adj_list_train"]
-			# movie_adj_list_valid = data["movie_adj_list_valid"]
-			# movie_adj_list_test = data["movie_adj_list_test"]
-			#user_adj_list_train = data["user_adj_list_train"]
+			movie_adj_list_train = data["movie_adj_list_train"]
+			#movie_adj_list_valid = data["movie_adj_list_valid"]
+			#movie_adj_list_test = data["movie_adj_list_test"]
+			user_adj_list_train = data["user_adj_list_train"]
 			# user_adj_list_valid = data["user_adj_list_valid"]
 			# user_adj_list_test = data["user_adj_list_test"]
-			#edge_list_train = data["edge_list_train"]
-			# edge_list_valid = data["edge_list_valid"]
+			edge_list_train = data["edge_list_train"]
+			edge_list_valid = data["edge_list_valid"]
 			# edge_list_test = data["edge_list_test"]
 
-			#del data
+			del data
 			gc.collect()
 
-			movie_feats = [[1,0,0.2,0],
-						   [0.4,1,0,0.1],
-						   [1,0.1,0.3,0],
-						   [0,0.8,0,0.5],
-						   [0.6,0,1,0],
-						   [0,0,0,1]]
-
-			movie_adj_list_train = [{(0,4.5), (1,4.5), (3,4), (5,3.5), (6,4.5), (7,3.5)},
-							  {(0,3.5), (1,3), (2,5), (4,4.5), (5,4), (6,4.5), (7,2.5)},
-							  {(0,5), (2,4), (3,4.5), (4,4.5), (6,5), (7,4)},
-							  {(1,2), (2,4.5), (4,4), (6,4.5)},
-							  {(0,4), (1,4.5), (2,3.5), (4,3.5), (5,4), (6,3.5), (7,4)},
-							  {(2,4),(5,2)}]
-
-			user_adj_list_train = [{(0,4.5), (1,3.5), (2,5), (4,4)},
-							 {(0,4.5), (1,3), (3,2), (4,4.5)},
-							 {(1,5), (2,4), (3,4.5), (4,3.5), (5,4)},
-							 {(0,4), (2,4.5)},
-							 {(1,4.5), (2,4.5), (3,4), (4,3.5)},
-							 {(0,3.5), (1,4), (4,4), (5,2)},
-							 {(0,4.5), (1,4.5), (2,5), (3,4.5), (4,3.5)},
-							 {(0,3.5), (1,2.5), (2,4), (4,4)}]
-
-
-			edge_list_train = [(0,0,4.5),
-						 (0,1,3.5),
-						 (0,2,5),
-						 (0,4,4),
-						 (1,0,4.5),
-						 (1,1,3),
-						 (1,3,2),
-						 (1,4,4.5),
-						 (2,1,5),
-						 (2,2,4),
-						 (2,3,4.5),
-						 (2,4,3.5),
-						 (2,5,4),
-						 (3,0,4),
-						 (3,2,4.5),
-						 (4,1,4.5),
-						 (4,2,4.5),
-						 (4,3,4),
-						 (4,4,3.5),
-						 (5,0,3.5),
-						 (5,1,4),
-						 (5,4,4),
-						 (5,5,2),
-						 (6,0,4.5),
-						 (6,1,4.5),
-						 (6,2,5),
-						 (6,3,4.5),
-						 (6,4,3.5),
-						 (7,0,3.5),
-						 (7,1,2.5),
-						 (7,2,4),
-						 (7,4,4)]
-
-			edge_list_valid = [(0,3,3),
-						  (1,2,5),
-						  (3,3,3.5),
-						  (5,2,4)]
+			# movie_feats = [[1,0,0.2,0],
+			# 			   [0.4,1,0,0.1],
+			# 			   [1,0.1,0.3,0],
+			# 			   [0,0.8,0,0.5],
+			# 			   [0.6,0,1,0],
+			# 			   [0,0,0,1]]
+			#
+			# movie_adj_list_train = [{(0,4.5), (1,4.5), (3,4), (5,3.5), (6,4.5), (7,3.5)},
+			# 				  {(0,3.5), (1,3), (2,5), (4,4.5), (5,4), (6,4.5), (7,2.5)},
+			# 				  {(0,5), (2,4), (3,4.5), (4,4.5), (6,5), (7,4)},
+			# 				  {(1,2), (2,4.5), (4,4), (6,4.5)},
+			# 				  {(0,4), (1,4.5), (2,3.5), (4,3.5), (5,4), (6,3.5), (7,4)},
+			# 				  {(2,4),(5,2)}]
+			#
+			# user_adj_list_train = [{(0,4.5), (1,3.5), (2,5), (4,4)},
+			# 				 {(0,4.5), (1,3), (3,2), (4,4.5)},
+			# 				 {(1,5), (2,4), (3,4.5), (4,3.5), (5,4)},
+			# 				 {(0,4), (2,4.5)},
+			# 				 {(1,4.5), (2,4.5), (3,4), (4,3.5)},
+			# 				 {(0,3.5), (1,4), (4,4), (5,2)},
+			# 				 {(0,4.5), (1,4.5), (2,5), (3,4.5), (4,3.5)},
+			# 				 {(0,3.5), (1,2.5), (2,4), (4,4)}]
+			#
+			#
+			# edge_list_train = [(0,0,4.5),
+			# 			 (0,1,3.5),
+			# 			 (0,2,5),
+			# 			 (0,4,4),
+			# 			 (1,0,4.5),
+			# 			 (1,1,3),
+			# 			 (1,3,2),
+			# 			 (1,4,4.5),
+			# 			 (2,1,5),
+			# 			 (2,2,4),
+			# 			 (2,3,4.5),
+			# 			 (2,4,3.5),
+			# 			 (2,5,4),
+			# 			 (3,0,4),
+			# 			 (3,2,4.5),
+			# 			 (4,1,4.5),
+			# 			 (4,2,4.5),
+			# 			 (4,3,4),
+			# 			 (4,4,3.5),
+			# 			 (5,0,3.5),
+			# 			 (5,1,4),
+			# 			 (5,4,4),
+			# 			 (5,5,2),
+			# 			 (6,0,4.5),
+			# 			 (6,1,4.5),
+			# 			 (6,2,5),
+			# 			 (6,3,4.5),
+			# 			 (6,4,3.5),
+			# 			 (7,0,3.5),
+			# 			 (7,1,2.5),
+			# 			 (7,2,4),
+			# 			 (7,4,4)]
+			#
+			# edge_list_valid = [(0,3,3),
+			# 			  (1,2,5),
+			# 			  (3,3,3.5),
+			# 			  (5,2,4)]
 
 
 

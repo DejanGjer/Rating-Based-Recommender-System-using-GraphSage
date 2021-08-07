@@ -15,7 +15,7 @@ parser = argparse.ArgumentParser(description='pytorch version of GraphSAGE')
 parser.add_argument('--dataSet', type=str, default='cora')
 parser.add_argument('--agg_func', type=str, default='MEAN')
 parser.add_argument('--epochs', type=int, default=50)
-parser.add_argument('--b_sz', type=int, default=3)
+parser.add_argument('--b_sz', type=int, default=2000)
 parser.add_argument('--seed', type=int, default=824)
 parser.add_argument('--cuda', action='store_true',
 					help='use CUDA')
@@ -85,9 +85,10 @@ if __name__ == '__main__':
 		projection = Projection(config['setting.hidden_emb_size'], config['setting.projection_size'])
 		projection.to(device)
 
-		checkpoint = torch.load("models/model_graphsage_debug_ep19.tar")
-		graphSage.load_state_dict(checkpoint["graphsage_state_dict"])
-		projection.load_state_dict((checkpoint["projection_state_dict"]))
+		#LOADING PRETRAINED MODEL
+		# checkpoint = torch.load("models/model_graphsage_debug_ep19.tar")
+		# graphSage.load_state_dict(checkpoint["graphsage_state_dict"])
+		# projection.load_state_dict((checkpoint["projection_state_dict"]))
 
 		# result = projection(user_embs, movie_embs)
 		#
