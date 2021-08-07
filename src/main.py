@@ -5,6 +5,7 @@ import argparse
 import pyhocon
 import random
 import pickle
+import datetime
 
 from src.dataCenter import *
 from src.utils import *
@@ -24,6 +25,7 @@ parser.add_argument('--learn_method', type=str, default='sup')
 parser.add_argument('--unsup_loss', type=str, default='normal')
 parser.add_argument('--max_vali_f1', type=float, default=0)
 parser.add_argument('--name', type=str, default='debug')
+parser.add_argument('--continue_training', action='store_true')
 parser.add_argument('--config', type=str, default='./src/experiments.conf')
 args = parser.parse_args()
 
@@ -58,6 +60,13 @@ if __name__ == '__main__':
 	train_losses = []
 	val_losses = []
 	val_rmse_losses = []
+
+	current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+	save_dir = f"models/{current_time}"
+	os.mkdir(save_dir)
+
+	epochs_before = 0
+
 	if ds == "movielens":
 		graphSage = GraphSage2(config['setting.num_layers'], features.size(1), config['setting.rating_emb_size'],
 							   config['setting.hidden_emb_size'],
@@ -86,11 +95,16 @@ if __name__ == '__main__':
 		# print("===============================================")
 		projection = Projection(config['setting.hidden_emb_size'], config['setting.projection_size'])
 		projection.to(device)
+		optimizer = get_optimizer(graphSage, projection)
 
-		#LOADING PRETRAINED MODEL
-		# checkpoint = torch.load("models/model_graphsage_debug_ep19.tar")
-		# graphSage.load_state_dict(checkpoint["graphsage_state_dict"])
-		# projection.load_state_dict((checkpoint["projection_state_dict"]))
+		if args.continue_training:
+			#LOADING PRETRAINED MODEL
+			path = config['setting.model']
+			checkpoint = torch.load(path)
+			graphSage.load_state_dict(checkpoint["graphsage_state_dict"])
+			projection.load_state_dict(checkpoint["projection_state_dict"])
+			optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+			epochs_before = checkpoint["epoch"]
 
 		# result = projection(user_embs, movie_embs)
 		#
@@ -116,12 +130,12 @@ if __name__ == '__main__':
 	else:
 		print('GraphSage with Net Unsupervised Learning')
 
-	for epoch in range(args.epochs):
+	for epoch in range(epochs_before + 1, epochs_before + args.epochs + 1):
 		print('----------------------EPOCH %d-----------------------' % epoch)
 		if ds == "movielens":
-			graphSage, projection, losses = apply_model2(dataCenter, ds, graphSage, projection, args.b_sz, device, args.learn_method)
+			graphSage, projection, optimizer, losses = apply_model2(dataCenter, ds, graphSage, projection, optimizer, args.b_sz, device, args.learn_method)
 			train_losses.extend(losses)
-			val_loss, val_rmse = evaluate2(dataCenter, ds, graphSage, projection, device, args.name, epoch)
+			val_loss, val_rmse = evaluate2(dataCenter, ds, graphSage, projection, optimizer, device, args.name, epoch, save_dir)
 			val_losses.append(val_loss)
 			val_rmse_losses.append(val_rmse)
 		else:
@@ -136,6 +150,6 @@ if __name__ == '__main__':
 	data["train_losses"] = train_losses
 	data["val_losses"] = val_losses
 	data["val_rmse_losses"] = val_rmse_losses
-	file_data = open("models/result_losses.pkl", "wb")
+	file_data = open(f"{save_dir}/result_losses.pkl", "wb")
 	pickle.dump(data, file_data)
 	file_data.close()

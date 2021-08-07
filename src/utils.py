@@ -1,5 +1,7 @@
 import sys
 import os
+import datetime
+
 import torch
 import random
 import math
@@ -197,7 +199,18 @@ def apply_model(dataCenter, ds, graphSage, classification, unsupervised_loss, b_
 
 	return graphSage, classification
 
-def apply_model2(dataCenter, ds, graphSage, projection, b_sz, device, learn_method):
+def get_optimizer(graphSage, projection):
+	models = [graphSage, projection]
+	params = []
+	for model in models:
+		for param in model.parameters():
+			if param.requires_grad:
+				params.append(param)
+
+	optimizer = torch.optim.Adam(params, lr=0.01)
+	return optimizer
+
+def apply_model2(dataCenter, ds, graphSage, projection, optimizer, b_sz, device, learn_method):
 	train_edges = getattr(dataCenter, ds+'_edge_list_train')
 
 	train_edges = shuffle(train_edges)
@@ -210,7 +223,8 @@ def apply_model2(dataCenter, ds, graphSage, projection, b_sz, device, learn_meth
 				params.append(param)
 
 	#optimizer = torch.optim.SGD(params, lr=0.7)
-	optimizer = torch.optim.Adam(params, lr=0.01)
+	if optimizer == None:
+		optimizer = torch.optim.Adam(params, lr=0.01)
 	optimizer.zero_grad()
 	for model in models:
 		model.zero_grad()
@@ -273,15 +287,10 @@ def apply_model2(dataCenter, ds, graphSage, projection, b_sz, device, learn_meth
 		time2 = time.time() - time1
 		#print(f"Backprop: {time2}")
 
-	return graphSage, projection, train_losses
+	return graphSage, projection, optimizer, train_losses
 
-def evaluate2(dataCenter, ds, graphSage, projection, device, name, cur_epoch):
-	# movie_adj_list_valid = getattr(dataCenter, ds + '_movie_adj_list_valid')
-	# movie_adj_list_test = getattr(dataCenter, ds + '_movie_adj_list_test')
-	# user_adj_list_valid = getattr(dataCenter, ds + '_user_adj_list_valid')
-	# user_adj_list_test = getattr(dataCenter, ds + '_user_adj_list_test')
+def evaluate2(dataCenter, ds, graphSage, projection, optimizer, device, name, cur_epoch, save_dir):
 	edge_list_valid = getattr(dataCenter, ds + "_edge_list_valid")
-	#edge_list_test = getattr(dataCenter, ds + "_edge_list_test")
 
 	models = [graphSage, projection]
 
@@ -308,9 +317,11 @@ def evaluate2(dataCenter, ds, graphSage, projection, device, name, cur_epoch):
 	#torch.save(models, f"models/model_graphsage_{name}_ep{cur_epoch}.torch")
 
 	torch.save({
+		'epoch': cur_epoch,
 		'graphsage_state_dict': models[0].state_dict(),
 		'projection_state_dict': models[1].state_dict(),
-	}, f"models/model_graphsage_train_lr001_{name}_ep{cur_epoch}.tar")
+		'optimizer_state_dict': optimizer.state_dict()
+	}, f"{save_dir}/model_graphsage_train_ep{cur_epoch}.tar")
 
 	for param in params:
 		param.requires_grad = True
