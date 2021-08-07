@@ -222,9 +222,15 @@ def apply_model2(dataCenter, ds, graphSage, projection, optimizer, b_sz, device,
 			if param.requires_grad:
 				params.append(param)
 
+	# for model in models:
+	# 	for name, param in model.named_parameters():
+	# 		if param.requires_grad:
+	# 			print(name)
+	# 			print(param)
+
 	#optimizer = torch.optim.SGD(params, lr=0.7)
 	if optimizer == None:
-		optimizer = torch.optim.Adam(params, lr=0.01)
+		optimizer = torch.optim.Adam(params, lr=0.05)
 	optimizer.zero_grad()
 	for model in models:
 		model.zero_grad()
@@ -328,3 +334,110 @@ def evaluate2(dataCenter, ds, graphSage, projection, optimizer, device, name, cu
 
 	return val_loss.item(), val_rmse.item()
 
+def evaluate_on_steps(dataCenter, ds, graphSage, projection, optimizer, device, steps, call, num_edges, save_dir):
+	edge_list_valid = getattr(dataCenter, ds + "_edge_list_valid")
+
+	models = [graphSage, projection]
+
+	params = []
+	for model in models:
+		for param in model.parameters():
+			if param.requires_grad:
+				param.requires_grad = False
+				params.append(param)
+
+	boundary = math.ceil(len(edge_list_valid) / num_edges)
+	call = call % boundary
+	edge_list = edge_list_valid[call * num_edges: (call + 1) * num_edges]
+
+	ratings = torch.tensor([edge[2] for edge in edge_list]).to(device)
+
+	movie_embs = graphSage(edge_list, "movie")
+	user_embs = graphSage(edge_list, "user")
+	results = projection(user_embs, movie_embs)
+
+	val_loss = torch.sum(torch.square(results - ratings))
+	val_loss /= len(edge_list)
+
+	val_rmse = torch.sqrt(val_loss)
+
+	print(f"Validation after step {steps} - loss: {val_loss.item()} , rmse: {val_rmse.item()}")
+
+	torch.save({
+		'steps': steps,
+		'graphsage_state_dict': models[0].state_dict(),
+		'projection_state_dict': models[1].state_dict(),
+		'optimizer_state_dict': optimizer.state_dict()
+	}, f"{save_dir}/model_graphsage_train_step{steps}.tar")
+
+	for param in params:
+		param.requires_grad = True
+
+	return val_loss.item(), val_rmse.item()
+
+def apply_model_on_steps(dataCenter, ds, graphSage, projection, optimizer, b_sz, num_of_steps, val_on_step, device, learn_method, save_dir):
+	train_edges = getattr(dataCenter, ds+'_edge_list_train')
+	valid_edges = getattr(dataCenter, ds + '_edge_list_valid')
+	train_edges = shuffle(train_edges)
+	valid_edges = shuffle(valid_edges)
+	setattr(dataCenter, ds + '_edge_list_valid', valid_edges)
+
+	val_losses = []
+	val_rmse_losses = []
+
+	models = [graphSage, projection]
+	params = []
+	for model in models:
+		for param in model.parameters():
+			if param.requires_grad:
+				params.append(param)
+
+	if optimizer is None:
+		optimizer = torch.optim.Adam(params, lr=0.05)
+	optimizer.zero_grad()
+	for model in models:
+		model.zero_grad()
+
+	batches = math.ceil(len(train_edges) / b_sz)
+	batches = min(batches, num_of_steps)
+
+	visited_edges = set()
+	train_losses = []
+	for index in range(batches):
+		if index % val_on_step == 0:
+			val_loss, val_rmse = evaluate_on_steps(dataCenter, ds, graphSage, projection, optimizer, device, index, index // val_on_step, 5000, save_dir)
+			val_losses.append(val_loss)
+			val_rmse_losses.append(val_rmse)
+
+		edge_batch = train_edges[index*b_sz:(index+1)*b_sz]
+		visited_edges |= set(edge_batch)
+
+		# get ground-truth for the nodes batch
+		ratings_batch = torch.tensor([edge[2] for edge in edge_batch]).to(device)
+
+		# feed edges batch to the graphSAGE
+		# returning the nodes embeddings
+
+		movie_embs = graphSage(edge_batch, "movie")
+		user_embs = graphSage(edge_batch, "user")
+
+		if learn_method == 'sup':
+			# superivsed learning
+			result_batch = projection(user_embs, movie_embs)
+			loss_sup = torch.sum(torch.square(result_batch - ratings_batch))
+			loss_sup /= len(edge_batch)
+			loss = loss_sup
+			train_losses.append(loss.item())
+
+		print('Step [{}/{}], Loss: {:.4f}, Dealed Nodes [{}/{}] '.format(index+1, batches, loss.item(), len(visited_edges), len(train_edges)))
+
+		loss.backward()
+		for model in models:
+			nn.utils.clip_grad_norm_(model.parameters(), 5)
+		optimizer.step()
+
+		optimizer.zero_grad()
+		for model in models:
+			model.zero_grad()
+
+	return graphSage, projection, optimizer, train_losses, val_losses, val_rmse_losses

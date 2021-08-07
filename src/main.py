@@ -26,6 +26,9 @@ parser.add_argument('--unsup_loss', type=str, default='normal')
 parser.add_argument('--max_vali_f1', type=float, default=0)
 parser.add_argument('--name', type=str, default='debug')
 parser.add_argument('--continue_training', action='store_true')
+parser.add_argument('--train_on_steps', action='store_true')
+parser.add_argument('--steps', type=int, default=20)
+parser.add_argument('--val_on_step', type=int, default=5)
 parser.add_argument('--config', type=str, default='./src/experiments.conf')
 args = parser.parse_args()
 
@@ -132,7 +135,11 @@ if __name__ == '__main__':
 
 	for epoch in range(epochs_before + 1, epochs_before + args.epochs + 1):
 		print('----------------------EPOCH %d-----------------------' % epoch)
-		if ds == "movielens":
+		if args.train_on_steps:
+			graphSage, projection, optimizer, train_losses, val_losses, val_rmse_losses = apply_model_on_steps(
+				dataCenter, ds, graphSage, projection, optimizer, args.b_sz, args.steps, args.val_on_step, device,
+				args.learn_method, save_dir)
+		elif ds == "movielens":
 			graphSage, projection, optimizer, losses = apply_model2(dataCenter, ds, graphSage, projection, optimizer, args.b_sz, device, args.learn_method)
 			train_losses.extend(losses)
 			val_loss, val_rmse = evaluate2(dataCenter, ds, graphSage, projection, optimizer, device, args.name, epoch, save_dir)
