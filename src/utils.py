@@ -235,7 +235,7 @@ def apply_model2(dataCenter, ds, graphSage, projection, optimizer, b_sz, device,
 	train_losses = []
 	for index in range(batches):
 		# print("NEW BATCH")
-		# print("========================================================================================================")
+		#print("========================================================================================================")
 		edge_batch = train_edges[index*b_sz:(index+1)*b_sz]
 
 		# extend nodes batch for unspervised learning
@@ -312,7 +312,7 @@ def evaluate2(dataCenter, ds, graphSage, projection, optimizer, device, name, cu
 
 	val_rmse = torch.sqrt(val_loss)
 
-	print(f"Validation after epoch {cur_epoch} - loss: {val_loss.item()} , rmse - {val_rmse.item()}")
+	print(f"Validation after epoch {cur_epoch} - loss: {val_loss.item()} , rmse: {val_rmse.item()}")
 
 	#torch.save(models, f"models/model_graphsage_{name}_ep{cur_epoch}.torch")
 

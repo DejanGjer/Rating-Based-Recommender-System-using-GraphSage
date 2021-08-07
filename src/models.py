@@ -398,7 +398,7 @@ class GraphSage2(nn.Module):
 		self.rating_distrib_movie = rating_distrib_movie
 		self.rating_distrib_user = rating_distrib_user
 
-		for index in range(1, 2 * num_layers + 1):
+		for index in range(1, num_layers + 1):
 			layer_size = out_size if index != 1 else input_size
 			setattr(self, 'rating_layer' + str(index), RatingLayer(layer_size, hidden_size, num_ratings, rating_distrib_movie, rating_distrib_user))
 			setattr(self, 'sage_layer' + str(index), SageLayer2(hidden_size, out_size))
@@ -423,13 +423,13 @@ class GraphSage2(nn.Module):
 			lower_layer_movie_nodes = [edge[1] for edge in edge_batch]
 			movie_edges = [(edge[0], edge[2]) for edge in edge_batch]
 			nodes_batch_layers = [(lower_layer_movie_nodes,)]
-			layers = 2 * self.num_layers
+			layers = self.num_layers if self.num_layers % 2 == 0 else self.num_layers - 1
 		elif to_gen == "user":
 			to_gen = 1
 			lower_layer_user_nodes = [edge[0] for edge in edge_batch]
 			user_edges = [(edge[1], edge[2]) for edge in edge_batch]
 			nodes_batch_layers = [(lower_layer_user_nodes,)]
-			layers = 2 * self.num_layers - 1
+			layers = self.num_layers - 1 if self.num_layers % 2 == 0 else self.num_layers
 
 		# self.dc.logger.info('get_unique_neighs.')
 		for i in range(layers):
@@ -460,9 +460,7 @@ class GraphSage2(nn.Module):
 
 		pre_hidden_embs = self.raw_movie_features
 		#print(pre_hidden_embs)
-		movie_embs = []
-		user_embs = []
-		tip = ""
+
 		for index in range(1, layers + 1):
 			nb = nodes_batch_layers[index][0]
 			node_type = "movie" if index % 2 == 0 else "user"
@@ -477,7 +475,6 @@ class GraphSage2(nn.Module):
 			# print(pre_neighs[2])
 			# print("Rating neighborhood")
 			# print(pre_neighs[3])
-			# self.dc.logger.info('aggregate_feats.')
 			rating_layer = getattr(self, 'rating_layer' + str(index))
 			hidden_embs = rating_layer(nb, pre_neighs, pre_hidden_embs, node_type)
 			# print(f"{tip} hidden feats")
