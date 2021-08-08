@@ -14,6 +14,8 @@ import numpy as np
 
 import time
 
+from src.regularization import *
+
 def evaluate(dataCenter, ds, graphSage, classification, device, max_vali_f1, name, cur_epoch):
 	test_nodes = getattr(dataCenter, ds+'_test')
 	val_nodes = getattr(dataCenter, ds+'_val')
@@ -222,6 +224,8 @@ def apply_model2(dataCenter, ds, graphSage, projection, optimizer, b_sz, device,
 			if param.requires_grad:
 				params.append(param)
 
+	regularizer = RatingMatrixRegularizer(graphSage)
+
 	# for model in models:
 	# 	for name, param in model.named_parameters():
 	# 		if param.requires_grad:
@@ -274,12 +278,17 @@ def apply_model2(dataCenter, ds, graphSage, projection, optimizer, b_sz, device,
 			# print(ratings_batch)
 			loss_sup = torch.sum(torch.square(result_batch - ratings_batch))
 			loss_sup /= len(edge_batch)
-			loss = loss_sup
+			reg_loss = regularizer.regularization()
+			loss = loss_sup + reg_loss
 			train_losses.append(loss.item())
 
-		print('Step [{}/{}], Loss: {:.4f}, Dealed Nodes [{}/{}] '.format(index+1, batches, loss.item(), len(visited_edges), len(train_edges)))
-		time1 = time.time()
-		#print(f"Calculating loss: {time1 - start_time}")
+		print('Step [{}/{}], Loss-Sup: {:.4f}, Loss-Reg: {:.4f}, Loss: {:.4f}, Dealed Nodes [{}/{}] '.format(index + 1,
+																											 batches,
+																											 loss_sup.item(),
+																											 reg_loss.item(),
+																											 loss.item(),
+																											 len(visited_edges),
+																											 len(train_edges)))
 
 		loss.backward()
 		for model in models:
@@ -289,9 +298,6 @@ def apply_model2(dataCenter, ds, graphSage, projection, optimizer, b_sz, device,
 		optimizer.zero_grad()
 		for model in models:
 			model.zero_grad()
-
-		time2 = time.time() - time1
-		#print(f"Backprop: {time2}")
 
 	return graphSage, projection, optimizer, train_losses
 
@@ -405,7 +411,7 @@ def apply_model_on_steps(dataCenter, ds, graphSage, projection, optimizer, b_sz,
 	train_losses = []
 	for index in range(batches):
 		if index % val_on_step == 0:
-			val_loss, val_rmse = evaluate_on_steps(dataCenter, ds, graphSage, projection, optimizer, device, index, index // val_on_step, 5000, save_dir)
+			val_loss, val_rmse = evaluate_on_steps(dataCenter, ds, graphSage, projection, optimizer, device, index, index // val_on_step, 10000, save_dir)
 			val_losses.append(val_loss)
 			val_rmse_losses.append(val_rmse)
 
