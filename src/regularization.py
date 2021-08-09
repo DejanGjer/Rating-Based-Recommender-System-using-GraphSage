@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 class RatingMatrixRegularizer():
 
-    def __init__(self, model, lambda_reg=1000):
+    def __init__(self, model, lambda_reg=4000):
         self.model = model
         self.lambda_reg = lambda_reg
 

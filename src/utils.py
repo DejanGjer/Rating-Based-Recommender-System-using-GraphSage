@@ -11,6 +11,7 @@ from sklearn.metrics import f1_score
 
 import torch.nn as nn
 import numpy as np
+import pickle
 
 import time
 
@@ -234,7 +235,7 @@ def apply_model2(dataCenter, ds, graphSage, projection, optimizer, b_sz, device,
 
 	#optimizer = torch.optim.SGD(params, lr=0.7)
 	if optimizer == None:
-		optimizer = torch.optim.Adam(params, lr=0.05)
+		optimizer = torch.optim.Adam(params, lr=0.1)
 	optimizer.zero_grad()
 	for model in models:
 		model.zero_grad()
@@ -242,7 +243,10 @@ def apply_model2(dataCenter, ds, graphSage, projection, optimizer, b_sz, device,
 	batches = math.ceil(len(train_edges) / b_sz)
 
 	visited_edges = set()
-	train_losses = []
+	train_losses = dict()
+	train_losses["loss_sup"] = []
+	train_losses["loss_reg"] = []
+	train_losses["loss"] = []
 	for index in range(batches):
 		# print("NEW BATCH")
 		#print("========================================================================================================")
@@ -280,7 +284,9 @@ def apply_model2(dataCenter, ds, graphSage, projection, optimizer, b_sz, device,
 			loss_sup /= len(edge_batch)
 			reg_loss = regularizer.regularization()
 			loss = loss_sup + reg_loss
-			train_losses.append(loss.item())
+			train_losses["loss_sup"].append(loss_sup.item())
+			train_losses["loss_reg"].append(reg_loss.item())
+			train_losses["loss"].append(loss.item())
 
 		print('Step [{}/{}], Loss-Sup: {:.4f}, Loss-Reg: {:.4f}, Loss: {:.4f}, Dealed Nodes [{}/{}] '.format(index + 1,
 																											 batches,
@@ -447,3 +453,66 @@ def apply_model_on_steps(dataCenter, ds, graphSage, projection, optimizer, b_sz,
 			model.zero_grad()
 
 	return graphSage, projection, optimizer, train_losses, val_losses, val_rmse_losses
+
+def testing(dataCenter, ds, graphSage, projection, device):
+	edge_list_test = getattr(dataCenter, ds + "_edge_list_test")
+
+	models = [graphSage, projection]
+
+	params = []
+	for model in models:
+		for param in model.parameters():
+			if param.requires_grad:
+				param.requires_grad = False
+				params.append(param)
+
+	ratings = torch.tensor([edge[2] for edge in edge_list_test]).to(device)
+
+	movie_embs = graphSage(edge_list_test, "movie")
+	user_embs = graphSage(edge_list_test, "user")
+	results = projection(user_embs, movie_embs)
+
+	test_loss = torch.sum(torch.square(results - ratings))
+	test_loss /= len(edge_list_test)
+
+	test_rmse = torch.sqrt(test_loss)
+
+	print(f"Testing - loss: {test_loss.item()} , rmse: {test_rmse.item()}")
+
+def recommend(dataCenter, ds, graphSage, projection, user, save_dir):
+	rating_distrib_user = getattr(dataCenter, ds + "_rating_distrib_user")
+	edge_list_train = getattr(dataCenter, ds + "_edge_list_train")
+	movie_adj_list = getattr(dataCenter, ds + '_movie_adj_list')
+	print(rating_distrib_user[user])
+	print("Rated movies")
+	for edge in edge_list_train:
+		if edge[0] == user:
+			print(edge)
+
+	edge_list = []
+	for i in range(len(movie_adj_list)):
+		edge_list.append([user, i, 0])
+
+	models = [graphSage, projection]
+
+	params = []
+	for model in models:
+		for param in model.parameters():
+			if param.requires_grad:
+				param.requires_grad = False
+				params.append(param)
+
+	movie_embs = graphSage(edge_list, "movie")
+	user_embs = graphSage(edge_list, "user")
+	results = projection(user_embs, movie_embs).tolist()
+
+	movie_ratings = dict()
+	for i in range(len(results)):
+		movie_ratings[i] = results[i]
+
+	#to_watch = sorted(movie_ratings.items(), key=lambda x: x[1], reverse=True)[:10]
+
+	file_data = open(f"{save_dir}/recommends.pkl", "wb")
+	pickle.dump(movie_ratings, file_data)
+	file_data.close()
+

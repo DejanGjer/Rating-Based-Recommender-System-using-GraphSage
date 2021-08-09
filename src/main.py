@@ -29,6 +29,8 @@ parser.add_argument('--continue_training', action='store_true')
 parser.add_argument('--train_on_steps', action='store_true')
 parser.add_argument('--steps', type=int, default=301)
 parser.add_argument('--val_on_step', type=int, default=50)
+parser.add_argument('--test', action='store_true')
+parser.add_argument('--recommend', action='store_true')
 parser.add_argument('--config', type=str, default='./src/experiments.conf')
 args = parser.parse_args()
 
@@ -60,7 +62,10 @@ if __name__ == '__main__':
 	graphsage = None
 	projection = None
 	classification = None
-	train_losses = []
+	train_losses = dict()
+	train_losses["loss_sup"] = []
+	train_losses["loss_reg"] = []
+	train_losses["loss"] = []
 	val_losses = []
 	val_rmse_losses = []
 
@@ -100,7 +105,7 @@ if __name__ == '__main__':
 		projection.to(device)
 		optimizer = get_optimizer(graphSage, projection)
 
-		if args.continue_training:
+		if args.continue_training or args.test or args.recommend:
 			#LOADING PRETRAINED MODEL
 			path = config['setting.model']
 			checkpoint = torch.load(path)
@@ -133,6 +138,14 @@ if __name__ == '__main__':
 	else:
 		print('GraphSage with Net Unsupervised Learning')
 
+	if args.recommend:
+		recommend(dataCenter, ds, graphSage, projection, 1083, f"models/20210808-231009")
+		exit()
+
+	if args.test:
+		testing(dataCenter, ds, graphSage, projection, device)
+		exit()
+
 	for epoch in range(epochs_before + 1, epochs_before + args.epochs + 1):
 		print('----------------------EPOCH %d-----------------------' % epoch)
 		if args.train_on_steps:
@@ -141,7 +154,9 @@ if __name__ == '__main__':
 				args.learn_method, save_dir)
 		elif ds == "movielens":
 			graphSage, projection, optimizer, losses = apply_model2(dataCenter, ds, graphSage, projection, optimizer, args.b_sz, device, args.learn_method)
-			train_losses.extend(losses)
+			train_losses["loss_sup"].extend(losses["loss_sup"])
+			train_losses["loss_reg"].extend(losses["loss_reg"])
+			train_losses["loss"].extend(losses["loss"])
 			val_loss, val_rmse = evaluate2(dataCenter, ds, graphSage, projection, optimizer, device, args.name, epoch, save_dir)
 			val_losses.append(val_loss)
 			val_rmse_losses.append(val_rmse)

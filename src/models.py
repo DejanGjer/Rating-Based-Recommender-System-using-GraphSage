@@ -522,7 +522,7 @@ class GraphSage2(nn.Module):
 			samp_neighs_ratings = to_neighs
 
 		#Sample and remove for label leakage issue
-		if opposite_edges != None:
+		if opposite_edges is not None:
 			samp_neighs_ratings = [samp_neigh_rating - set([opposite_edges[i]]) for i, samp_neigh_rating in
 									   enumerate(samp_neighs_ratings)]
 
