@@ -1,2 +1,2 @@
 ## Rating based recommender system with GraphSage
-some text here
+Project implemented for PSIML7. 
